@@ -1,0 +1,27 @@
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docview
+
+# VS project files
+*.vcxproj
+*.vcxproj.filters
+
+# Build output
+x64/
+x86/
+Debug/
+Release/
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.exe
+
+# SFML-2.6.1 folder (DLLs + bin for runtime)
+!SFML-2.6.1/
+!SFML-2.6.1/**
