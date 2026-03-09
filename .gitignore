@@ -13,5 +13,6 @@ Release/
 *.ilk
 *.exp
 *.dll
+*.exe
 !SFML-2.6.1/
 !SFML-2.6.1/**
