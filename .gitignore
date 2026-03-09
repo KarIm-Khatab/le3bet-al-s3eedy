@@ -4,8 +4,6 @@
 *.suo
 *.userosscache
 *.sln.docview
-x64/
-x86/
 Debug/
 Release/
 *.obj
@@ -14,5 +12,7 @@ Release/
 *.exp
 *.dll
 *.exe
+!x64/
+!x64/**
 !SFML-2.6.1/
 !SFML-2.6.1/**
