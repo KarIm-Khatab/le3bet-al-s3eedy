@@ -14,6 +14,7 @@ void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector
 
 int main()
 {
+	string line;
     RenderWindow window = { VideoMode(1440,900),"sfml works" };
     Event event;
     while (window.isOpen())
