@@ -10,6 +10,8 @@
 using namespace std;
 using namespace sf;
 
+void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove);
+
 int main()
 {
     RenderWindow window = { VideoMode(1440,900),"sfml works" };
@@ -23,4 +25,34 @@ int main()
         }
     }
     return 0;
+}
+
+void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove) {
+
+	if (playerHitbox.getGlobalBounds().intersects(fishHitbox.getGlobalBounds())) {
+
+		if (playerSize >= fishSize) {
+
+			score += 50;
+			playerSize += 5;
+
+		}
+
+		else {
+
+			lives--;
+
+		}
+
+	}
+
+	if (lives <= 0) {
+
+		lives = 0;
+		drawPlayer = false;
+		canMove = false;
+		playerPosition = fishPosition;
+
+	}
+
 }
