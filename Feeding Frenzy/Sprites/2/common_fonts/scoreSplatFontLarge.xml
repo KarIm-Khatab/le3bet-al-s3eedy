@@ -1,0 +1,24 @@
+<font face="ttf\SF Fedora.ttf" image="Resource\common_fonts\scoreSplatFontLarge.png" height="41" spaceWidth="12" ascent="36" gap="1" leftOverlap="2" rightOverlap="2" topOverlap="2" bottomOverlap="2">
+   <!-- ..\FontBoy2.exe -size 39 -gfile score_glyphs.txt -lb 2 -rb 2 -lo 2 -ro 2 -tb 2 -to 2 -bb 2 -bo 2 ttf\SF Fedora.ttf Resource\fonts\scoreSplatFontLarge.png -->
+   <!-- row 0 -->
+   <glyph char="65279" a="0" b="4" c="20" />
+   <glyph char="32" a="0" b="4" c="12" />
+   <glyph char="43" a="7" b="23" c="-6" />
+   <glyph char="45" a="6" b="23" c="-7" />
+   <glyph char="49" a="3" b="31" c="-8" />
+   <glyph char="50" a="2" b="37" c="-7" />
+   <glyph char="51" a="4" b="40" c="-11" />
+   <!-- row 1 -->
+   <glyph char="52" a="1" b="39" c="-8" />
+   <glyph char="53" a="4" b="39" c="-10" />
+   <glyph char="54" a="3" b="33" c="-6" />
+   <glyph char="55" a="4" b="39" c="-13" />
+   <!-- row 2 -->
+   <glyph char="56" a="3" b="36" c="-8" />
+   <glyph char="57" a="1" b="39" c="-9" />
+   <glyph char="48" a="5" b="34" c="-7" />
+   <glyph char="44" a="1" b="15" c="-2" />
+   <glyph char="46" a="4" b="12" c="-2" />
+   <glyph char="13" a="0" b="4" c="20" />
+   <glyph char="10" a="0" b="4" c="20" />
+</font>

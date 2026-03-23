@@ -1,0 +1,37 @@
+<font face="..\assets\fonts\Arial Narrow.ttf" image="resource/fonts/hudFont.png" height="14" spaceWidth="3" ascent="11" gap="1" leftOverlap="0" rightOverlap="0" topOverlap="0" bottomOverlap="0">
+   <!-- ..\..\tools\bin\fontboy.exe -glyphs abcdefghijklmnopqrstuvwxyz  -as resource/fonts/hudFont.png -size 15 ..\assets\fonts\Arial Narrow.ttf ..\assets\fonts\hudFont.png -->
+   <!-- row 0 -->
+   <glyph char="97" a="0" b="7" c="0" />
+   <glyph char="98" a="0" b="6" c="0" />
+   <glyph char="99" a="0" b="7" c="0" />
+   <glyph char="100" a="0" b="6" c="1" />
+   <glyph char="101" a="0" b="7" c="1" />
+   <!-- row 1 -->
+   <glyph char="102" a="0" b="4" c="-1" />
+   <glyph char="103" a="0" b="7" c="1" />
+   <glyph char="104" a="0" b="6" c="1" />
+   <glyph char="105" a="0" b="2" c="1" />
+   <glyph char="106" a="-1" b="3" c="1" />
+   <glyph char="107" a="0" b="7" c="-1" />
+   <glyph char="108" a="0" b="2" c="1" />
+   <!-- row 2 -->
+   <glyph char="109" a="0" b="10" c="1" />
+   <glyph char="110" a="0" b="6" c="1" />
+   <glyph char="111" a="0" b="7" c="0" />
+   <glyph char="112" a="0" b="6" c="0" />
+   <glyph char="113" a="0" b="6" c="1" />
+   <!-- row 3 -->
+   <glyph char="114" a="0" b="5" c="-1" />
+   <glyph char="115" a="0" b="6" c="0" />
+   <glyph char="116" a="0" b="4" c="-1" />
+   <glyph char="117" a="0" b="6" c="1" />
+   <glyph char="118" a="0" b="6" c="0" />
+   <!-- row 4 -->
+   <glyph char="119" a="0" b="9" c="0" />
+   <glyph char="120" a="0" b="7" c="-1" />
+   <glyph char="121" a="0" b="7" c="-1" />
+   <glyph char="122" a="0" b="5" c="0" />
+   <glyph char="32" a="0" b="0" c="3" />
+
+   <mbGlyphs string="A"/>
+</font>

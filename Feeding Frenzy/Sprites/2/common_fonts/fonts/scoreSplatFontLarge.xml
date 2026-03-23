@@ -1,0 +1,20 @@
+<font face="c:\WINNT\Fonts\SF Fedora.ttf" image="resource\fonts\scoreSplatFontLarge.png" height="41" spaceWidth="12" ascent="36" gap="1" leftOverlap="2" rightOverlap="2" topOverlap="2" bottomOverlap="2">
+   <!-- fontboy -size 39 -glyphs +-1234567890 -lb 2 -rb 2 -lo 2 -ro 2 -tb 2 -to 2 -bb 2 -bo 2 -as resource\fonts\scoreSplatFontLarge.png c:\WINNT\Fonts\SF Fedora.ttf scoreSplatFontLarge.png -->
+   <!-- row 0 -->
+   <glyph char="43" a="7" b="23" c="-6" />
+   <glyph char="45" a="6" b="23" c="-7" />
+   <glyph char="49" a="3" b="31" c="-8" />
+   <glyph char="50" a="2" b="37" c="-7" />
+   <!-- row 1 -->
+   <glyph char="51" a="4" b="40" c="-11" />
+   <glyph char="52" a="1" b="39" c="-8" />
+   <glyph char="53" a="4" b="39" c="-10" />
+   <glyph char="54" a="3" b="33" c="-6" />
+   <!-- row 2 -->
+   <glyph char="55" a="4" b="39" c="-13" />
+   <glyph char="56" a="3" b="36" c="-8" />
+   <glyph char="57" a="1" b="39" c="-9" />
+   <glyph char="48" a="5" b="34" c="-7" />
+
+   <mbGlyphs string="A"/>
+</font>

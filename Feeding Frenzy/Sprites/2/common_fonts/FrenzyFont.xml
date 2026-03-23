@@ -1,0 +1,24 @@
+<font face="ttf\SF Fedora.ttf" image="resource/common_fonts/FrenzyFont.png" height="34" spaceWidth="11" ascent="31" gap="1" leftOverlap="0" rightOverlap="0" topOverlap="0" bottomOverlap="0">
+   <!-- ..\FontBoy2.exe -size 36 -gfile frenzy.txt ttf\SF Fedora.ttf FrenzyFont.png -->
+   <!-- row 0 -->
+   <glyph char="65279" a="0" b="0" c="18" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="32" a="0" b="0" c="11" />
+   <glyph char="70" a="2" b="32" c="-12" />
+   <glyph char="82" a="1" b="34" c="-7" />
+   <!-- row 1 -->
+   <glyph char="69" a="2" b="32" c="-11" />
+   <glyph char="78" a="1" b="35" c="-9" />
+   <!-- row 2 -->
+   <glyph char="90" a="0" b="36" c="-12" />
+   <glyph char="89" a="5" b="28" c="-13" />
+   <glyph char="33" a="4" b="15" c="-11" />
+</font>
