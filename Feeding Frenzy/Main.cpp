@@ -14,12 +14,15 @@ void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector
 
 struct mainMenu{
     short selected =0;
-    Texture main_menu_background_text, logo_texture, button1_texture[2], button2_texture[2],
-    button3_texture[2], button4_texture[2], button5_texture[2], button6_texture[2],tool_tip_texture, ment;
+    Texture main_menu_background_text, logo_texture, button1_texture[2], button2_texture[2], reft,
+    button3_texture[2], button4_texture[2], button5_texture[2], button6_texture[2],tool_tip_texture,tube_texture, ment;
     Sprite main_menu_background_sprite, logo_sprite, button1_sprite[2], button2_sprite[2],button3_sprite[2],
-    button4_sprite[2], button5_sprite[2], button6_sprite[2],tool_tip_sprite, mens;
+    button4_sprite[2], button5_sprite[2], button6_sprite[2],tool_tip_sprite, tube_sprite, mens, refs;
+    Vector2f Res;
+
     void load_assets(Vector2f res)
     {
+        Res = res;
         Vector2f buttons_scale;
         if (!main_menu_background_text.loadFromFile("Sprites\\2\\Menu assets\\mainMenu.jpg")) cout << "main menu background is not found" << endl;
         main_menu_background_sprite.setTexture(main_menu_background_text);
@@ -87,7 +90,7 @@ struct mainMenu{
             buttons_scale= {(res.x * 0.257f) / button6_texture[i].getSize().x,(res.y * 0.095f) / button6_texture[i].getSize().y};
             button6_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
         }
-        // al original menu
+        // al original menu "for refrence"
         ment.loadFromFile("men.jpg");
         mens.setScale(res.x/ment.getSize().x, res.y/ment.getSize().y);
         mens.setTexture(ment);
@@ -97,28 +100,60 @@ struct mainMenu{
         tool_tip_sprite.setOrigin(tool_tip_sprite.getGlobalBounds().width / 2, 0);
         tool_tip_sprite.setPosition(res.x / 2, res.y * 0.735f);
         tool_tip_sprite.setScale((res.x * 0.5f) / tool_tip_texture.getSize().x, (res.y * 0.19f) / tool_tip_texture.getSize().y);
-
+        
         if (!logo_texture.loadFromFile("Sprites\\2\\Menu assets\\logo.png")) cout << "logo's texture is not found" << endl;
         logo_sprite.setTexture(logo_texture);
-        logo_sprite.setScale((res.x * 0.365f) / logo_texture.getSize().x, (res.y * 0.37f) / logo_texture.getSize().y);
-        logo_sprite.setPosition(res.x * 0.1665f, res.y * 0.05f);
+        logo_sprite.setScale((res.x * 0.396f) / logo_texture.getSize().x, (res.y * 0.39f) / logo_texture.getSize().y);
+        logo_sprite.setPosition(res.x * 0.296f, res.y * 0.033f);
+        
+        if (!tube_texture.loadFromFile("Sprites\\2\\Menu assets\\tubes_01.png")) cout << "tube's texture is not found" << endl;
+        tube_sprite.setTexture(tube_texture);
+        tube_sprite.setOrigin(tube_texture.getSize().x / 2,tube_texture.getSize().y);
+        tube_sprite.setScale((res.x * 0.135f) / tube_texture.getSize().x, (res.y * 0.315f) / tube_texture.getSize().y);
+        tube_sprite.setPosition(res.x * 0.715f, res.y * 1.f);
+
+        // click to start refrence "hab2a ashelha ba3deen"
+        if (!reft.loadFromFile("ref1.png")) cout << "ref's texture is not found" << endl;
+        refs.setTexture(reft);
+        refs.setScale(res.x/reft.getSize().x, res.y/reft.getSize().y);
+
     };
-    void handle_movements(Event& event)
+    void handle_movements(Event& event, short &scene)
     {
         if (event.type == Event::KeyPressed)
     {
-        if (event.key.code == Keyboard::Down)
-            selected ++, selected%=6, cout << selected;
-        if (event.key.code == Keyboard::Up)
-            selected = (selected - 1) + 6 , selected%=6, cout << selected;
+        if(scene == 0)
+        {
+            scene++;
+            logo_sprite.setScale((Res.x * 0.365f) / logo_texture.getSize().x, (Res.y * 0.37f) / logo_texture.getSize().y);
+            logo_sprite.setPosition(Res.x * 0.1665f, Res.y * 0.05f);
+        }
+        else if(scene == 1)
+        {
+            if (event.key.code == Keyboard::Down)
+                selected ++, selected%=6;//, cout << selected;
+            if (event.key.code == Keyboard::Up)
+                selected = (selected - 1) + 6 , selected%=6;//, cout << selected;
+        }
     }
     };
+    void draw_starting_menu(RenderWindow& window)
+    {
+        window.clear();
+//        window.draw(refs);
+        window.draw(main_menu_background_sprite);
+        window.draw(logo_sprite);
+        window.draw(tube_sprite);
+        window.display();
+    }
+    
     void draw_main_menu(RenderWindow& window)
     {
         window.clear();
         window.draw(main_menu_background_sprite);
 //        window.draw(mens); // de al main menu 2l original "bazabat 3aleha al 7aga"
         window.draw(logo_sprite);
+        window.draw(tube_sprite);
         window.draw(tool_tip_sprite);
         window.draw(button6_sprite[selected == 5 ? 1 : 0]);
         window.draw(button5_sprite[selected == 4 ? 1 : 0]);
@@ -136,7 +171,7 @@ int main()
     Vector2f res = {1920,1080};
     RenderWindow window(VideoMode(res.x, res.y), "Feeding frenzy 2");
     Event event;
-    short scene = 0; // 0 for main menu, 1 single player, still gonna add the rest xD
+    short scene = 0; // 0 for click to start scene, 1  main menu, 2 single player, still gonna add the rest xD
 
     while (window.isOpen())
     {
@@ -145,7 +180,7 @@ int main()
             if (event.type == Event::Closed)
                 window.close();
             if(menu)
-                menu-> handle_movements(event);
+                menu-> handle_movements(event, scene);
         }
         switch (scene)
         {
@@ -155,8 +190,12 @@ int main()
             menu = new mainMenu();
             menu->load_assets(res);
         }
+        menu->draw_starting_menu(window);
+        break;
+        case 1:
         menu->draw_main_menu(window);
-            break;
+        break;
+
         
         }
     }
