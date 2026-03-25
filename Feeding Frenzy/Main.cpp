@@ -13,13 +13,14 @@ using namespace sf;
 void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove);
 
 struct mainMenu{
-    short selected =0;
+    short selected =0, menu_scene =0 ;
     Texture main_menu_background_text, logo_texture, button1_texture[2], button2_texture[2], reft,
     button3_texture[2], button4_texture[2], button5_texture[2], button6_texture[2],tool_tip_texture,tube_texture, ment;
     Sprite main_menu_background_sprite, logo_sprite, button1_sprite[2], button2_sprite[2],button3_sprite[2],
     button4_sprite[2], button5_sprite[2], button6_sprite[2],tool_tip_sprite, tube_sprite, mens, refs;
     Vector2f Res;
-
+    SoundBuffer click_buffer, main_theme_buffer;
+    Sound click_sound, main_theme_sound;
     void load_assets(Vector2f res)
     {
         Res = res;
@@ -111,7 +112,11 @@ struct mainMenu{
         tube_sprite.setOrigin(tube_texture.getSize().x / 2,tube_texture.getSize().y);
         tube_sprite.setScale((res.x * 0.135f) / tube_texture.getSize().x, (res.y * 0.315f) / tube_texture.getSize().y);
         tube_sprite.setPosition(res.x * 0.715f, res.y * 1.f);
-
+        
+        if (!main_theme_buffer.loadFromFile("Sounds\\music\\menu_theme.wav")) cout << "tube's texture is not found" << endl;
+        main_theme_sound.setBuffer(main_theme_buffer);
+        main_theme_sound.setVolume(70);
+        main_theme_sound.setLoop(true);
         // click to start refrence "hab2a ashelha ba3deen"
         if (!reft.loadFromFile("ref1.png")) cout << "ref's texture is not found" << endl;
         refs.setTexture(reft);
@@ -122,13 +127,13 @@ struct mainMenu{
     {
         if (event.type == Event::KeyPressed)
     {
-        if(scene == 0)
+        if(menu_scene == 0)
         {
-            scene++;
+            menu_scene++;
             logo_sprite.setScale((Res.x * 0.365f) / logo_texture.getSize().x, (Res.y * 0.37f) / logo_texture.getSize().y);
             logo_sprite.setPosition(Res.x * 0.1665f, Res.y * 0.05f);
         }
-        else if(scene == 1)
+        else if(menu_scene == 1)
         {
             if (event.key.code == Keyboard::Down)
                 selected ++, selected%=6;//, cout << selected;
@@ -137,6 +142,16 @@ struct mainMenu{
         }
     }
     };
+    void update_menu_scenes(RenderWindow& window)
+    {
+        if (main_theme_sound.getStatus() != Sound::Playing)
+            main_theme_sound.play();
+        switch(menu_scene)
+        {
+            case 0 : draw_starting_menu(window);break;
+            case 1 : draw_main_menu(window); break;
+        }
+    }
     void draw_starting_menu(RenderWindow& window)
     {
         window.clear();
@@ -171,7 +186,10 @@ int main()
     Vector2f res = {1920,1080};
     RenderWindow window(VideoMode(res.x, res.y), "Feeding frenzy 2");
     Event event;
-    short scene = 0; // 0 for click to start scene, 1  main menu, 2 single player, still gonna add the rest xD
+    Image icon;
+    icon.loadFromFile("Sprites\\icon.png");
+    window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
+    short scene = 0; // 0 for start menu,
 
     while (window.isOpen())
     {
@@ -190,10 +208,10 @@ int main()
             menu = new mainMenu();
             menu->load_assets(res);
         }
-        menu->draw_starting_menu(window);
+        menu-> update_menu_scenes(window);
         break;
         case 1:
-        menu->draw_main_menu(window);
+        
         break;
 
         
