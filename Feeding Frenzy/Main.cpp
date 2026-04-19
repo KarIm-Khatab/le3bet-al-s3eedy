@@ -7,21 +7,171 @@
 #include <SFML/Audio.hpp>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
+
 using namespace std;
 using namespace sf;
 
+struct Score{
+int score = 0, bouns = 1, smallFscore = 10, medFscore = 20, bigFscore = 50,
+taileBscore = 100, starscore = 60, prealscore = 50,
+scale = 0, lives = 3, trials = 3, speedP = 800, speedE = 100, livelnum = 1,
+currentFrenzy = 0, i = 0; //for counting frenzy word
+
+int FRENZYi[7]{ 0,0,0,0,0,0,0 };
+float dt, timer = 0;
+
+bool lessThanSec, medFishCanBeAten = 0, bigFishCanBeAten = 0;
+
+Clock clock1;
+
+Text FRENZYiText[7], scoretext;
+Font font;
+string word = "FRENZY!";
+};
+Score score;
+struct fishes {
+    bool aten = 0, ate = 0, playerIntersectWFish = 0, draw = 1, dead = 0;
+    int size;
+    int score;
+    Sprite sprite;
+    Texture texture;
+    Vector2f Position;
+    
+    int frameW, frameH, mouthX, mouthY;
+    int frames, countframe, currentframe;
+
+    float anitimer;
+    float speed;
+    fishes() {
+        frameW = 0, frameH = 0, frames = 0, anitimer = 0, countframe = currentframe = 0, speed = 100;
+    }
+    fishes(Texture& t, int f, int W, int H) {
+        texture = t;
+        countframe = f;
+        currentframe = 0;
+        anitimer = 0;
+        frameW = W;
+        frameH = H;
+        sprite.setTexture(texture);
+        sprite.setOrigin(frameW / 2, frameH / 2);
+        mouthX = sprite.getPosition().x + sprite.getGlobalBounds().width / 2;
+        mouthY = sprite.getPosition().y;
+    }
+
+};
+
+struct Shark{
+    Texture signalTexture, sharkTexture;
+    Sprite signal, shark;
+
+    float sharkAnimTimer = 0, sharkTimer = 0, turnTimer = 0, eatTimer = 0;
+    int flashCount = 0, sharkFrame = 0, eatFrame = 0;
+    bool fromRight = true, isTurning = false, sharkReady = false, showSignal = true,eating = false;
+    bool ate, tailBite;
+    float dt;
+
+    Vector2f startPos;
+
+    void start();
+    void update(float dt);
+    void draw(RenderWindow& window);
+    void sharkMovement(float speed, bool fromRight, float deltaTime);
+    void sharkEntrance(float& timer, int& flashCount, float deltaTime, Vector2f startPosition, bool& finished);
+    void sharkAnimation(int frame, int row, int frameCountInEveryRow);
+};
+
 void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove);
 
+void window_mode(RenderWindow& window, bool full_screen, Vector2f res);
+
+void addfishs(Texture& t, int f, int w, int h, const int n);
+
+void setback(Sprite& sp, Texture& t);
+
+Vector2f Mouthposition(fishes& player);
+
+int start();
+
+int draw(RenderWindow& window);
+
+int scoring(Shark& shark, float dt);
+
+void intersection();
+
+void playermovement(float dt, fishes& fish, Sprite& sprite, Texture& t,RenderWindow& window);
+
+void dead();
+
+void Sorry(RenderWindow& window, float dt);
+
+void ContinueY_N(RenderWindow& window);
+
+int mouthintersect(fishes& a, fishes& b);
+
+struct GameSettings{
+    short sound_volume = 100, music_volume = 100;
+    bool controls[4] ={1,1,1,0}; // 0 -> sfx, 1-> music, 2->full screen, 3 -> 0
+    //bool sfx = 1, music = 1, full_screen = 1, font = 0;
+    Vector2f res = {1920,1080};
+
+    Font game_font;
+
+    void load_essentials()
+    {
+        if (!game_font.loadFromFile("Fonts\\hint.ttf")) cout << "Menu font is not found" << endl;
+        else controls[3] = 1;
+    }
+};
+
 struct help_and_options{
-    Texture buttons_texture[5][2], menu_shell_texture[6],mouse_texture, reft;
-    Sprite buttons_sprite[5][2],menu_shell_sprite[6],mouse_sprite, refs;
-    void load_assets(Vector2f res)
+
+    struct menuButtons{
+
+        Texture checkbox_texture[2][2];
+        Sprite checkbox_sprite[2][2];
+
+        void load_buttons()
+        {
+            if(!checkbox_texture[0][0].loadFromFile("Sprites\\menu\\option menu check box.png")) cout << "option menu check box texture is not found" << endl;
+            if(!checkbox_texture[0][1].loadFromFile("Sprites\\menu\\option menu check box-hoovered.png")) cout << "option menu check box texture is not found" << endl;
+            if(!checkbox_texture[1][0].loadFromFile("Sprites\\menu\\marked check box.png")) cout << "option menu marked check box texture is not found" << endl;
+            if(!checkbox_texture[1][1].loadFromFile("Sprites\\menu\\marked check box-hoovered.png")) cout << "option menu hoovered marked check box texture is not found" << endl;
+
+            for(int i =0; i < 2; i++)
+            {
+                for(int j = 0; j < 2; j++)
+                {
+                checkbox_sprite[i][j].setTexture(checkbox_texture[i][j]);
+                checkbox_sprite[i][j].setOrigin(checkbox_sprite[i][j].getGlobalBounds().width/2,checkbox_sprite[i][j].getGlobalBounds().height/2);
+                checkbox_sprite[i][j].setScale(1.1f,1.1f);
+                }
+            }
+        }
+    };
+
+
+    menuButtons buttons[4];
+    Texture buttons_texture[6][2], menu_shell_texture[6],Rarrow_texture[1][2], Larrow_texture[1][2], mouse_texture, reft;
+    Sprite buttons_sprite[6][2],menu_shell_sprite[6],Rarrow_sprite[1][2], Larrow_sprite[1][2],mouse_sprite, refs;
+    string settings_string[4] = {"Sound:", "Music:", "Full Screen:", "Mouse Speed:"}, 
+    how_to_play_string[2] {"Welcome to the beautiful Frenzy Coast.\nEnjoy the sights, but don't get too comfortable...\nA fish still needs his lunch, and it's a fish-eat-fish\nworld out there!",
+        "- Use your mouse to control Boris.\n- Eat fish that are smaller than you.\n- Avoid anything that's larger than you.\n- Eat enough fish and you'll grow bigger!\n"};
+    Text settings_text[4],how_to_play_text[2], sound_volume, music_volume;
+
+    void load_assets(Vector2f res, Font& game_font)
     {
         reft.loadFromFile("Sprites\\menu\\2.png");
         refs.setTexture(reft);
-        
+        for(int i =0; i< 4; i++)
+            buttons[i].load_buttons();
         
         if(!mouse_texture.loadFromFile("Sprites\\menu\\mouse.png")) cout << "mouse texture is not found" << endl;
+        
+        if(!Rarrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small.png")) cout << "right arrow texture is not found" << endl;
+        if(!Rarrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_glow.png")) cout << "glowing right arrow texture is not found" << endl;
+        if(!Larrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small_left.png")) cout << "left arrow texture is not found" << endl;
+        if(!Larrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_left_glow.png")) cout << "glowing left arrow texture is not found" << endl;
         
         if(!menu_shell_texture[0].loadFromFile("Sprites\\menu\\shell_stageBack.png")) cout << "main shell's not found" << endl;
         if(!menu_shell_texture[1].loadFromFile("Sprites\\menu\\help-and-options-shell1.png")) cout << "help-and-optionsshell's not found" << endl;
@@ -39,32 +189,45 @@ struct help_and_options{
         if(!buttons_texture[3][1].loadFromFile("Sprites\\menu\\credits-glow.png")) cout << "not found" << endl;
         if(!buttons_texture[4][0].loadFromFile("Sprites\\menu\\done.png")) cout << "not found" << endl;
         if(!buttons_texture[4][1].loadFromFile("Sprites\\menu\\done-glow.png")) cout << "not found" << endl;
+        if(!buttons_texture[5][0].loadFromFile("Sprites\\menu\\lil-done.png")) cout << "not found" << endl;
+        if(!buttons_texture[5][1].loadFromFile("Sprites\\menu\\lil-done-glow.png")) cout << "not found" << endl;
 
-        for(int i = 0; i < 5; i++)
+        for(int i = 0; i < 6; i++)
         {
             for(int j =0; j < 2; j++)
             {
             buttons_sprite[i][j].setTexture(buttons_texture[i][j]);
-            Vector2f buttons_scale= {(res.x * 0.23f) / buttons_texture[i][j].getSize().x,(res.y * 0.105f) / buttons_texture[i][j].getSize().y};
-            buttons_sprite[i][j].setScale(buttons_scale.x, buttons_scale.y);
-            if(i == 0)
-            {
-                buttons_sprite[i][j].setPosition(res.x * 0.390f, res.y * 0.2179f);
-                buttons_scale= {(res.x * 0.22f) / buttons_texture[i][j].getSize().x,(res.y * 0.1f) / buttons_texture[i][j].getSize().y};
-            }
-            else if (i == 1)
-            {
-                buttons_sprite[i][j].setPosition(res.x * 0.390f, res.y * 0.316f);
-                buttons_sprite[i][j].rotate(1.3);
-            }
-            else if (i == 2)
-                buttons_sprite[i][j].setPosition(res.x * 0.3880f, res.y * 0.42f);
-            else if(i==3)
-                buttons_sprite[i][j].setPosition(res.x * 0.3880f, res.y * 0.52f);
+            buttons_sprite[i][j].setOrigin(buttons_sprite[i][j].getGlobalBounds().width/2,buttons_sprite[i][j].getGlobalBounds().height/2);
+            if(!j)
+                buttons_sprite[i][j].setScale(0.245f, 0.245f);
             else
-                buttons_sprite[i][j].setPosition(res.x * 0.3870f, res.y * 0.765f);
+                buttons_sprite[i][j].setScale(0.255f, 0.255f);
+
+            switch (i)
+            {
+                case 0: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.265f); break;
+                case 1: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.38f); break;
+                case 2: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.495f); break;
+                case 3: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.61f); break;
+                case 4: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.79f); break;
+                case 5: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.79f);
+                    if(!j)
+                        buttons_sprite[i][j].setScale(0.2,0.2);
+                    else
+                        buttons_sprite[i][j].setScale(0.22,0.22);
+                break;
+            }
+
+            if(i == 1 || i == 2)
+            {
+                if(!j)
+                    buttons_sprite[i][j].setScale(0.245, 0.238);
+                else
+                    buttons_sprite[i][j].setScale(0.255, 0.239);
+            }
             }
         }
+
         for(int i =0; i < 5;i++)
         {
             menu_shell_sprite[i].setTexture(menu_shell_texture[i]);
@@ -77,19 +240,70 @@ struct help_and_options{
         mouse_sprite.setOrigin(mouse_sprite.getGlobalBounds().width/2, mouse_sprite.getGlobalBounds().height/2);
         mouse_sprite.setPosition(res.x * 0.43f, res.y * 0.5f);
         mouse_sprite.setScale(0.9f,0.9f);
+
+        for(int i =0; i < 4; i++)
+        {
+            settings_text[i].setString(settings_string[i]);
+            settings_text[i].setFont(game_font);
+            settings_text[i].setFillColor(Color::White);
+            settings_text[i].setOutlineColor(Color::Black);
+            settings_text[i].setCharacterSize(48);
+            settings_text[i].setOutlineThickness(2);
+            FloatRect bounds = settings_text[i].getLocalBounds();
+            settings_text[i].setOrigin(bounds.left + bounds.width, bounds.top);
+            
+            settings_text[i].setPosition(0.477f * res.x, 0.272f * res.y + i * 100);
+        }
+        
+        for(int i =0; i < 2; i++)
+        {
+            how_to_play_text[i].setString(how_to_play_string[i]);
+            how_to_play_text[i].setFont(game_font);
+            how_to_play_text[i].setFillColor(Color::White);
+            how_to_play_text[i].setOutlineColor(Color::Black);
+            how_to_play_text[i].setCharacterSize(34);
+            how_to_play_text[i].setOutlineThickness(2);
+            how_to_play_text[i].setOrigin(how_to_play_text[i].getGlobalBounds().width/2,how_to_play_text[i].getGlobalBounds().height/2);
+        }
+
+        how_to_play_text[0].setPosition((0.44f) * res.x,(0.335f) * res.y);
+        how_to_play_text[1].setPosition((0.435f) * res.x,(0.585) * res.y);
+
+        for(int i =0; i<4; i++)
+            for(int j =0; j < 2;j++)
+                for(int h =0; h < 2; h++)
+                    buttons[i].checkbox_sprite[j][h].setPosition(0.495f * res.x, 0.295f * res.y + i * 100);
+
+
+        
+        sound_volume.setPosition(0.495f * res.x, 0.272f * res.y);
+        sound_volume.setFont(game_font);
+        sound_volume.setFillColor(Color::White);
+        sound_volume.setOutlineColor(Color::Black);
+        sound_volume.setCharacterSize(48);
+        sound_volume.setOutlineThickness(2);
+
     }
 
-    void handle_movements(Event& event, short &selected, short &menu_scene, RenderWindow& window)
+    void handle_movements(Event& event, short &selected, short &menu_scene, RenderWindow& window, GameSettings &settings)
     {
 
         if (event.type == Event::KeyPressed)
         {
-            if (event.key.code == Keyboard::Escape)
-                menu_scene = 1;
-            if (event.key.code == Keyboard::Down)
-                selected++, selected %= 5;
-            if (event.key.code == Keyboard::Up)
-                selected = (selected - 1) + 5, selected %= 5;
+            if(menu_scene == 6)
+            {
+                if (event.key.code == Keyboard::Escape)
+                    menu_scene = 1;
+                if (event.key.code == Keyboard::Down)
+                    selected++, selected %= 5;
+                if (event.key.code == Keyboard::Up)
+                    selected = (selected - 1) + 5, selected %= 5;
+            }
+            else if(menu_scene == 13)
+            {
+                if (event.key.code == Keyboard::Escape)
+                    menu_scene = 6;
+            }
         }
 
         if (event.type == Event::MouseMoved)
@@ -100,47 +314,41 @@ struct help_and_options{
 
             if(menu_scene == 6)
             {
-                if(buttons_sprite[0][0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else if(buttons_sprite[1][0].getGlobalBounds().contains(mouse_position))
-                    selected = 1;
-                else if(buttons_sprite[2][0].getGlobalBounds().contains(mouse_position))
-                    selected = 2;
-                else if(buttons_sprite[3][0].getGlobalBounds().contains(mouse_position))
-                    selected = 3;
-                else if(buttons_sprite[4][0].getGlobalBounds().contains(mouse_position))
-                    selected = 4;
-                else
+                for(int i =0; i < 5; i++)
+                {
+                    if(buttons_sprite[i][0].getGlobalBounds().contains(mouse_position))
+                    {
+                        selected = i;
+                        break;
+                    }
+                    else
                     selected = -1;
+                }
             }
+
             else if (menu_scene == 11)
             {
-                if(buttons_sprite[4][0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else
-                    selected = -1;
+                for(int i = 0; i < 4; i++)
+                {
+                    if(buttons_sprite[5][0].getGlobalBounds().contains(mouse_position))
+                    {
+                        selected = 0;
+                        break;
+                    }
+                    if(buttons[i].checkbox_sprite[0][0].getGlobalBounds().contains(mouse_position))
+                    {
+                        selected = i + 1;
+                        break;
+                    }
+                    else 
+                        selected = -1;
+                }
+
             }
-            else if (menu_scene == 12)
-            {
-                if(buttons_sprite[4][0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else
-                    selected = -1;
-            }
-            else if (menu_scene == 13)
-            {
-                if(buttons_sprite[4][0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else
-                    selected = -1;
-            }
-            else if (menu_scene == 14)
-            {
-                if(buttons_sprite[4][0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else
-                    selected = -1;
-            }
+                else if(menu_scene == 12 || menu_scene == 13 || menu_scene == 14)
+                {
+                    selected = buttons_sprite[4][0].getGlobalBounds().contains(mouse_position) ? 0 : -1;
+                }
         }
 
         if (event.type == Event::MouseButtonPressed)
@@ -162,14 +370,21 @@ struct help_and_options{
                     else if(selected == 4)
                         menu_scene = 1, selected = -1;
                 }
-                else if(menu_scene == 11 && selected == 0)
-                    menu_scene = 6, selected = -1;
-                else if(menu_scene == 12 && selected == 0)
-                    menu_scene = 6, selected = -1;
-                else if(menu_scene == 13 && selected == 0)
-                    menu_scene = 6, selected = -1;
-                else if(menu_scene == 14 && selected == 0)
-                    menu_scene = 6, selected = -1;
+                else if(menu_scene == 11)
+                {
+                    if(selected == 0)
+                        menu_scene = 6, selected = -1;
+                    else if(selected == 1)
+                        settings.controls[0] = !settings.controls[0];
+                    else if(selected == 2)
+                        settings.controls[1] = !settings.controls[1];
+                    else if(selected == 3)
+                        settings.controls[2] = !settings.controls[2], window_mode(window, settings.controls[2], settings.res);
+                }
+                else if(menu_scene == 12 || menu_scene == 13 || menu_scene == 14)
+                {
+                    if(selected == 0) menu_scene = 6, selected = -1;
+                }
             }
         }
     }
@@ -187,15 +402,32 @@ struct help_and_options{
         window.display();
     }
 
-    void draw_settings(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite)
+    void update_settings(GameSettings& settings)
     {
+        sound_volume.setString(to_string(settings.sound_volume));
+        music_volume.setString(to_string(settings.music_volume));
+        FloatRect bounds = sound_volume.getLocalBounds();
+        sound_volume.setOrigin(bounds.left + bounds.width, bounds.top);
+    }
+
+    void draw_settings(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite, GameSettings& settings)
+    {
+        update_settings(settings);
         window.clear();
         window.draw(main_menu_background_sprite);
         window.draw(menu_rocks_sprite);
         //window.draw(refs);
         for(int i = 0; i < 3; i=i+2)
             window.draw(menu_shell_sprite[i]);
-        window.draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
+        
+        for(int i =0; i < 4; i++)
+        {
+            window.draw(settings_text[i]);
+        }
+        for(int i = 0; i < 4; i++)
+            window.draw(buttons[i].checkbox_sprite[settings.controls[i] ? 1 : 0][selected == (i + 1) ? 1 : 0]);
+        //window.draw(sound_volume);
+        window.draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
         window.display();
     }
 
@@ -204,7 +436,7 @@ struct help_and_options{
         window.clear();
         window.draw(main_menu_background_sprite);
         window.draw(menu_rocks_sprite);
-        //window.draw(refs);
+
         for(int i = 0; i < 4; i=i+3)
         {
             window.draw(menu_shell_sprite[i]);
@@ -212,7 +444,8 @@ struct help_and_options{
                 continue;
             window.draw(mouse_sprite);
         }
-        window.draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
+
+        window.draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
         window.display();
     }
 
@@ -224,6 +457,8 @@ struct help_and_options{
         //window.draw(refs);
         for(int i = 0; i < 5; i=i+4)
             window.draw(menu_shell_sprite[i]);
+        for(int i =0; i < 2; i++)
+            window.draw(how_to_play_text[i]);
         window.draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
         window.display();
     }
@@ -241,6 +476,18 @@ struct help_and_options{
     }
 };
 
+struct Ingame_windows{
+    void load()
+    {
+
+    }
+
+    void draw_first_tip(RenderWindow& window, Sprite& background, Sprite& rock)
+    {
+
+    }
+};
+
 struct mainMenu{
     help_and_options* help = nullptr;
     short selected =-1, menu_scene =0;
@@ -248,20 +495,24 @@ struct mainMenu{
     // 5 -> achievements, 6->help, 7-> quit 
     // 8 -> story mode, 9 - > story lite, 10 -> time attack, 
     // settings = 11, controls = 12, how to play = 13, credits = 14
-    Texture main_menu_background_text, logo_texture, button1_texture[4], button2_texture[2], reft, txt, menu_rocks_text,
-    button3_texture[2], button4_texture[2], button5_texture[2], button6_texture[2],tool_tip_texture,tube_texture, ment, rr,
+    Texture main_menu_background_text, logo_texture,main_menu_buttons_texture[6][2], reft, txt, menu_rocks_text,
+    tool_tip_texture,tube_texture, ment, rr,
     single_player_texture[4][2], quads_texture[6], the_sign_texture;
-    Sprite main_menu_background_sprite, logo_sprite, button1_sprite[4], button2_sprite[2],button3_sprite[2], menu_rocks_sprite,
-    button4_sprite[2], button5_sprite[2], button6_sprite[2],tool_tip_sprite, tube_sprite, mens, refs, txts, rrs, single_player_sprite[4][2],
-    quads_sprite[6], the_sign_sprite;
+    Sprite main_menu_background_sprite,main_menu_buttons_sprite[6][2], logo_sprite, menu_rocks_sprite,
+    tool_tip_sprite, tube_sprite, mens, refs, txts, rrs, single_player_sprite[4][2], quads_sprite[6], the_sign_sprite;
+
     Vector2f Res;
     SoundBuffer click_buffer, main_theme_buffer;
     Sound click_sound, main_theme_sound;
     string menu_strings[6] = {"Single Player Game Modes","Multiplayer Game Modes","View Leaderboards", "See Your Achievements", "Adjust Sound and Music Settings Or Learn How tp Play", "Return to Desktop"};
     Text menu_text[6];
     Font menu_font;
-    void load_assets(Vector2f res)
+    void load_assets(Vector2f res, GameSettings &settings)
     {
+
+        if(!settings.controls[3])
+            settings.load_essentials();
+
         Res = res;
         Vector2f buttons_scale;
         if (!main_menu_background_text.loadFromFile("Sprites\\2\\Menu assets\\mainMenu.jpg")) cout << "main menu background is not found" << endl;
@@ -271,23 +522,18 @@ struct mainMenu{
         if (!rr.loadFromFile("Sprites\\menu\\ref.png")) cout << "rr's texture is not found" << endl;
         rrs.setTexture(rr);
         // Loading buttons!
-        if (!button1_texture[0].loadFromFile("Sprites\\menu\\single-player.png")) cout << "button 1's texture is not found" << endl;
-        if (!button1_texture[1].loadFromFile("Sprites\\menu\\single-player-glow.png")) cout << "glowing button 1's texture is not found" << endl;
-
-        if (!button2_texture[0].loadFromFile("Sprites\\menu\\multiplayer.png")) cout << "button 2's texture is not found" << endl;
-        if (!button2_texture[1].loadFromFile("Sprites\\menu\\multiplayer-glow.png")) cout << "glowing button 2 texture is not found" << endl;
-
-        if (!button3_texture[0].loadFromFile("Sprites\\menu\\leaderboards.png")) cout << "button 3's texture is not found" << endl;
-        if (!button3_texture[1].loadFromFile("Sprites\\menu\\leaderboards-glow.png")) cout << "glowing button 3 texture is not found" << endl;
-        
-        if (!button4_texture[0].loadFromFile("Sprites\\menu\\achievements.png")) cout << "button 4's texture is not found" << endl;
-        if (!button4_texture[1].loadFromFile("Sprites\\menu\\achievements-glow.png")) cout << "glowing button 4 texture is not found" << endl;
-        
-        if (!button5_texture[0].loadFromFile("Sprites\\menu\\help-and-options.png")) cout << "button 5's texture is not found" << endl;
-        if (!button5_texture[1].loadFromFile("Sprites\\menu\\help-and-options-glow.png")) cout << "glowing button 5 texture is not found" << endl;
-        
-        if (!button6_texture[0].loadFromFile("Sprites\\menu\\quit.png")) cout << "button 6's texture is not found" << endl;
-        if (!button6_texture[1].loadFromFile("Sprites\\menu\\quit-glow.png")) cout << "glowing button 6 texture is not found" << endl;
+        if (!main_menu_buttons_texture[0][0].loadFromFile("Sprites\\menu\\single-player.png")) cout << "button 1's texture is not found" << endl;
+        if (!main_menu_buttons_texture[0][1].loadFromFile("Sprites\\menu\\single-player-glow.png")) cout << "glowing button 1's texture is not found" << endl;
+        if (!main_menu_buttons_texture[1][0].loadFromFile("Sprites\\menu\\multiplayer.png")) cout << "button 2's texture is not found" << endl;
+        if (!main_menu_buttons_texture[1][1].loadFromFile("Sprites\\menu\\multiplayer-glow.png")) cout << "glowing button 2 texture is not found" << endl;
+        if (!main_menu_buttons_texture[2][0].loadFromFile("Sprites\\menu\\leaderboards.png")) cout << "button 3's texture is not found" << endl;
+        if (!main_menu_buttons_texture[2][1].loadFromFile("Sprites\\menu\\leaderboards-glow.png")) cout << "glowing button 3 texture is not found" << endl;
+        if (!main_menu_buttons_texture[3][0].loadFromFile("Sprites\\menu\\achievements.png")) cout << "button 4's texture is not found" << endl;
+        if (!main_menu_buttons_texture[3][1].loadFromFile("Sprites\\menu\\achievements-glow.png")) cout << "glowing button 4 texture is not found" << endl;
+        if (!main_menu_buttons_texture[4][0].loadFromFile("Sprites\\menu\\help-and-options.png")) cout << "button 5's texture is not found" << endl;
+        if (!main_menu_buttons_texture[4][1].loadFromFile("Sprites\\menu\\help-and-options-glow.png")) cout << "glowing button 5 texture is not found" << endl;
+        if (!main_menu_buttons_texture[5][0].loadFromFile("Sprites\\menu\\quit.png")) cout << "button 6's texture is not found" << endl;
+        if (!main_menu_buttons_texture[5][1].loadFromFile("Sprites\\menu\\quit-glow.png")) cout << "glowing button 6 texture is not found" << endl;
 
         if (!single_player_texture[0][0].loadFromFile("Sprites\\menu\\story-mode.png")) cout << "glowing button 1's texture is not found" << endl;
         if (!single_player_texture[0][1].loadFromFile("Sprites\\menu\\story-mode-glow.png")) cout << "glowing button 1's texture is not found" << endl;
@@ -298,14 +544,53 @@ struct mainMenu{
         if (!single_player_texture[3][0].loadFromFile("Sprites\\menu\\back.png")) cout << "glowing button 1's texture is not found" << endl;
         if (!single_player_texture[3][1].loadFromFile("Sprites\\menu\\back-glow.png")) cout << "glowing button 1's texture is not found" << endl;
         
-        for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 6; i++)
+    {
+        for(int j = 0; j < 2; j++)
         {
-        button1_sprite[i].setTexture(button1_texture[i]);
-        button1_sprite[i].setPosition(res.x * 0.55501f, res.y * 0.08f);
-        buttons_scale= {(res.x * 0.27f) / button1_texture[i].getSize().x,(res.y * 0.14f) / button1_texture[i].getSize().y};
-        button1_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
+            main_menu_buttons_sprite[i][j].setTexture(main_menu_buttons_texture[i][j]);
+            main_menu_buttons_sprite[i][j].setOrigin(main_menu_buttons_sprite[i][j].getGlobalBounds().width/2,main_menu_buttons_sprite[i][j].getGlobalBounds().height/2);
+
+            if(!j)
+                main_menu_buttons_sprite[i][j].setScale(0.24f, 0.24f);
+            else
+                main_menu_buttons_sprite[i][j].setScale(0.255f, 0.255f);
+
+            switch(i)
+            {
+                case 0:
+                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.12f);
+                    if(j){ main_menu_buttons_sprite[i][j].setScale(0.3f, 0.3f); break;}
+                    main_menu_buttons_sprite[i][j].setScale(0.285f, 0.285f);
+                    break;
+                case 1:
+                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.25f);
+                    main_menu_buttons_sprite[i][j].setRotation(-1.3f);
+                    if(j) {main_menu_buttons_sprite[i][j].setScale(0.28f, 0.28f); break;}
+                    main_menu_buttons_sprite[i][j].setScale(0.265f,0.265f);
+                    break;
+                case 2:
+                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.36f);
+                    break;
+                case 3:
+                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.46f);
+                    if(j) {main_menu_buttons_sprite[i][j].setScale(0.26f, 0.26f); break;}
+                    main_menu_buttons_sprite[i][j].setScale(0.48f,0.48f);
+                    break;
+                case 4:
+                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.565f);
+                    main_menu_buttons_sprite[i][j].setRotation(-1.05f);
+                    break;
+                case 5:
+                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7, res.y * 0.66f);
+                    main_menu_buttons_sprite[i][j].setRotation(-1.45f);
+                    if(j) {main_menu_buttons_sprite[i][j].setScale(0.19f, 0.19f); break;}
+                    main_menu_buttons_sprite[i][j].setScale(0.18f,0.18f);
+                    break;
+            }
         }
-        
+    }
+
         for(int i = 0; i < 4; i++)
         {
             for(int j =0; j < 2; j++)
@@ -317,8 +602,6 @@ struct mainMenu{
                 {
                     single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.262f);
                     single_player_sprite[i][j].rotate(1.8);
-                    //if(j == 1)
-                    //    buttons_scale= {(res.x * 0.22f) / single_player_texture[i][j].getSize().x,(res.y * 0.1f) / single_player_texture[i][j].getSize().y};
                 }
                 else if (i == 1)
                 {
@@ -337,52 +620,7 @@ struct mainMenu{
                 }
             }
         }
-    //button1_sprite[1].setRotation(2.f);
 
-        for(int i = 0; i < 2; i++)
-        {
-        button2_sprite[i].setTexture(button2_texture[i]);
-        button2_sprite[i].setPosition(res.x * 0.56001f, res.y * 0.21f);
-        button2_sprite[i].setRotation(-1.3f);
-        buttons_scale= {(res.x * 0.25f) / button2_texture[i].getSize().x,(res.y * 0.13f) / button2_texture[i].getSize().y};
-        button2_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
-        }
-        
-        for(int i = 0; i < 2; i++)
-        {
-        button3_sprite[i].setTexture(button3_texture[i]);
-        button3_sprite[i].setPosition(res.x * 0.56501f, res.y * 0.32f);
-        //button3_sprite[i].setRotation(1.65f);
-        buttons_scale= {(res.x * 0.255f) / button3_texture[i].getSize().x,(res.y * 0.10f) / button3_texture[i].getSize().y};
-        button3_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
-        }
-
-        for(int i = 0; i < 2; i++)
-        {
-            button4_sprite[i].setTexture(button4_texture[i]);
-            button4_sprite[i].setPosition(res.x * 0.56401f, res.y * 0.404f);
-            //button4_sprite[i].setRotation(-1.05f);
-            buttons_scale= {(res.x * 0.255f) / button4_texture[i].getSize().x,(res.y * 0.10f) / button4_texture[i].getSize().y};
-            button4_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
-        }
-
-        for(int i = 0; i < 2; i++)
-        {
-            button5_sprite[i].setTexture(button5_texture[i]);
-            button5_sprite[i].setPosition(res.x * 0.56401f, res.y * 0.499f);
-            button5_sprite[i].setRotation(-1.05f);
-            buttons_scale= {(res.x * 0.255f) / button5_texture[i].getSize().x,(res.y * 0.10f) / button5_texture[i].getSize().y};
-            button5_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
-        }
-
-        for(int i = 0; i < 2; i++)
-        {
-        button6_sprite[i].setTexture(button6_texture[i]);
-        button6_sprite[i].setPosition(res.x * 0.62401f, res.y * 0.584f);  // was 0.585f
-        button6_sprite[i].setRotation(-1.45f);
-        buttons_scale= {(res.x * 0.135f) / button6_texture[i].getSize().x,(res.y * 0.095f) / button6_texture[i].getSize().y};  // was 0.357f
-        button6_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
-        }
         // al original menu "for refrence"
         ment.loadFromFile("men.jpg");
         mens.setScale(res.x/ment.getSize().x, res.y/ment.getSize().y);
@@ -407,7 +645,7 @@ struct mainMenu{
         
         if (!main_theme_buffer.loadFromFile("Sounds\\music\\menu_theme.wav")) cout << "tube's texture is not found" << endl;
         main_theme_sound.setBuffer(main_theme_buffer);
-        main_theme_sound.setVolume(70);
+        main_theme_sound.setVolume(settings.music_volume);
         main_theme_sound.setLoop(true);
         
         if (!txt.loadFromFile("Fonts\\press_any_button.png")) cout << "button is not found" << endl;
@@ -428,7 +666,6 @@ struct mainMenu{
             FloatRect textBounds = menu_text[i].getLocalBounds();
             menu_text[i].setOrigin(textBounds.left + textBounds.width / 2.f,
             textBounds.top  + textBounds.height / 2.f);
-
             FloatRect tipBounds = tool_tip_sprite.getGlobalBounds();
             menu_text[i].setPosition(tipBounds.left + tipBounds.width  / 2.f,
             tipBounds.top  + tipBounds.height / 2.f);
@@ -446,13 +683,13 @@ struct mainMenu{
         refs.setScale(res.x/reft.getSize().x, res.y/reft.getSize().y);
         if (!click_buffer.loadFromFile("Sounds\\sfx\\pop.mp3")) cout << "quad q1 is not found" << endl;
         click_sound.setBuffer(click_buffer);
-        click_sound.setVolume(70);
+        
         
         if (!the_sign_texture.loadFromFile("Sprites\\menu\\sprite_clean.png")) cout << "quad back is not found" << endl;
         the_sign_sprite.setTexture(the_sign_texture);
         the_sign_sprite.setPosition(res.x * 0.355, res.y * 0.785f);
         the_sign_sprite.setScale((res.x * 0.3f) / the_sign_texture.getSize().x, (res.y * 0.1f) / the_sign_texture.getSize().y);
-        
+
 
         if (!quads_texture[0].loadFromFile("Sprites\\menu\\quad_back.png")) cout << "quad back is not found" << endl;
         if (!quads_texture[1].loadFromFile("Sprites\\menu\\quad_ring.png")) cout << "quad ring is not found" << endl;
@@ -469,8 +706,8 @@ struct mainMenu{
             buttons_scale= {(res.x * 0.171f) / quads_texture[i].getSize().x,(res.y * 0.28f) / quads_texture[i].getSize().y};
             quads_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
         }
-
     };
+
     void logo_transformation(char a)
     {
         if (a == 'f')
@@ -485,11 +722,20 @@ struct mainMenu{
         }
     };
 
-    void handle_movements(Event& event, short &scene, RenderWindow& window)
+    void Click_sound(GameSettings& settings)
+    {
+        if(settings.controls[0])
+            click_sound.setVolume(70);
+        else
+            click_sound.setVolume(0);
+        click_sound.play();
+    }
+
+    void handle_movements(Event& event, short &scene, RenderWindow& window, GameSettings &settings)
     {
         if (event.type == Event::KeyPressed)
         {
-            click_sound.play();
+            Click_sound(settings);
             if(menu_scene == 0 && event.key.code != Keyboard::Escape)
             {
                 logo_transformation('f');
@@ -504,7 +750,7 @@ struct mainMenu{
                 if (event.key.code == Keyboard::Escape)
                 {
                     logo_transformation('b');
-                    menu_scene--;selected = -1;
+                    menu_scene--; selected = -1;
                     cout << menu_scene << endl;
                 }
                 if(event.key.code == Keyboard::Enter)
@@ -525,7 +771,9 @@ struct mainMenu{
                         else if(selected == 4)
                             menu_scene = 6;
                         else if(selected == 5)
+                        {
                             window.close();
+                        }
                         selected = -1;
                     }
                     else if(menu_scene == 2)
@@ -553,56 +801,69 @@ struct mainMenu{
                 if (event.key.code == Keyboard::Up)
                     selected = (selected - 1) + 4 , selected%=4;
             }
+            else if(menu_scene == 3)
+            {
+                if (event.key.code == Keyboard::Escape)
+                    menu_scene = 1;
+            }
+            else if(menu_scene == 4)
+            {
+                if (event.key.code == Keyboard::Escape)
+                    menu_scene = 1;
+            }
+            else if(menu_scene == 5)
+            {
+                if (event.key.code == Keyboard::Escape)
+                    menu_scene = 1;
+            }
             else if((menu_scene == 6 || menu_scene == 11 || menu_scene == 12||menu_scene == 13 || menu_scene == 14) && help)
             {
-                help->handle_movements(event, selected, menu_scene, window);
+                help->handle_movements(event, selected, menu_scene, window, settings);
             }
         }
 
-        if (event.type == Event::MouseMoved)
-        {
-            Vector2i mousePixel = Mouse::getPosition(window);
-            Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
-            if(menu_scene == 1)
+if (event.type == Event::MouseMoved)
+{
+    Vector2i mousePixel = Mouse::getPosition(window);
+    Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
+    switch(menu_scene)
+    {
+        case 1:
+            selected = -1;
+            for(int i = 0; i < 6; i++)
             {
-                if(button1_sprite[0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else if(button2_sprite[0].getGlobalBounds().contains(mouse_position))
-                    selected = 1;
-                else if(button3_sprite[0].getGlobalBounds().contains(mouse_position))
-                    selected = 2;
-                else if(button4_sprite[0].getGlobalBounds().contains(mouse_position))
-                    selected = 3;
-                else if(button5_sprite[0].getGlobalBounds().contains(mouse_position))
-                    selected = 4;
-                else if(button6_sprite[0].getGlobalBounds().contains(mouse_position))
-                    selected = 5;
+                if(main_menu_buttons_sprite[i][0].getGlobalBounds().contains(mouse_position))
+                {
+                    selected = i;
+                    break;
+                }
                 else
                     selected = -1;
             }
-            else if(menu_scene == 2)
+            break;
+        case 2:
+            for(int i = 0; i < 4; i++)
             {
-                if(single_player_sprite[0][0].getGlobalBounds().contains(mouse_position))
-                    selected = 0;
-                else if(single_player_sprite[1][0].getGlobalBounds().contains(mouse_position))
-                    selected = 1;
-                else if(single_player_sprite[2][0].getGlobalBounds().contains(mouse_position))
-                    selected = 2;
-                else if(single_player_sprite[3][0].getGlobalBounds().contains(mouse_position))
-                    selected = 3;
+                if(single_player_sprite[i][0].getGlobalBounds().contains(mouse_position))
+                {
+                    selected = i;
+                    break;
+                }
                 else
                     selected = -1;
             }
-            else if((menu_scene == 6 || menu_scene == 11 || menu_scene == 12||menu_scene == 13 || menu_scene == 14) && help)
-            {
-                help->handle_movements(event, selected, menu_scene, window);
-            }
-        }
+            break;
+        case 6: case 11: case 12: case 13: case 14:
+            if(help)
+                help->handle_movements(event, selected, menu_scene, window, settings);
+            break;
+    }
+}
 
         if (event.type == Event::MouseButtonPressed)
         {
 
-            click_sound.play();
+            Click_sound(settings);
             Vector2i mousePixel = Mouse::getPosition(window);
             Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
 
@@ -613,42 +874,42 @@ struct mainMenu{
                     logo_transformation('f');
                     menu_scene++;
                 }
+
                 if(menu_scene == 1)
                 {
-                    if(selected == 0)
-                        menu_scene = 2, selected = -1;
-                    else if(selected == 1)
-                        menu_scene = 3, selected = -1;
-                    else if(selected == 2)
-                        menu_scene = 4, selected = -1;
-                    else if(selected == 3)
-                        menu_scene = 5, selected = -1;
-                    else if(selected == 4)
-                        menu_scene = 6, selected = -1;
-                    else if(selected == 5)
-                        window.close();
+                    for(int i = 0; i <6; i++)
+                    {
+                        if(selected == 5)
+                            window.close();
+                        if(selected == i)
+                            menu_scene = i+2, selected = -1;
+                    }
                 }
+
                 else if(menu_scene == 2)
                 {
-                    if(selected == 0)
-                        menu_scene = 8, selected = -1;
-                    else if(selected == 1)
-                        menu_scene = 9, selected = -1;
-                    else if(selected == 2)
-                        menu_scene = 10, selected = -1;
-                    else if(selected == 3)
-                        menu_scene = 1, selected = -1;
+                    for(int i = 0; i < 4; i++)
+                    {
+                        if(i == 3)
+                            menu_scene = 1, selected = -1;
+                        if(selected == i)
+                            menu_scene = i + 8, selected = -1; 
+                    }
                 }
                 else if((menu_scene == 6 || menu_scene == 11 || menu_scene == 12 ||menu_scene == 13 || menu_scene == 14) && help)
-                    help->handle_movements(event, selected, menu_scene, window);
+                    help->handle_movements(event, selected, menu_scene, window, settings);
             }
         }
     };
 
-    void update_menu_scenes(RenderWindow& window)
+    void update_menu_scenes(RenderWindow& window, GameSettings& settings)
     {
-        if (main_theme_sound.getStatus() != Sound::Playing)
+        if (main_theme_sound.getStatus() != Sound::Playing && settings.controls[1])
             main_theme_sound.play();
+
+        if(!settings.controls[1])
+            main_theme_sound.stop();
+
         switch(menu_scene)
         {
             case 0 : draw_starting_menu(window);break;
@@ -661,11 +922,11 @@ struct mainMenu{
                 if (!help)
                 {
                     help = new help_and_options();
-                    help->load_assets(Res);
+                    help->load_assets(Res, settings.game_font);
                 }
                 help->draw(window, selected, main_menu_background_sprite,menu_rocks_sprite);
                 break;
-            case 11 : help->draw_settings(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
+            case 11 : help->draw_settings(window, selected, main_menu_background_sprite,menu_rocks_sprite, settings); break;
             case 12 : help->draw_controls(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
             case 13 : help->draw_how_to_play(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
             case 14 : help->draw_credits(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
@@ -688,19 +949,17 @@ struct mainMenu{
     {
         window.clear();
         window.draw(main_menu_background_sprite);
-        //        window.draw(mens); // de al main menu 2l original "bazabat 3aleha al 7aga"
         window.draw(logo_sprite);
-        window.draw(menu_rocks_sprite);
         //window.draw(tube_sprite);
-        window.draw(tool_tip_sprite);
-        window.draw(button6_sprite[selected == 5 ? 1 : 0]);
-        window.draw(button5_sprite[selected == 4 ? 1 : 0]);
-        window.draw(button4_sprite[selected == 3 ? 1 : 0]);
-        window.draw(button3_sprite[selected == 2 ? 1 : 0]);
-        window.draw(button2_sprite[selected == 1 ? 1 : 0]);
-        window.draw(button1_sprite[selected == 0 ? 1 : 0]);
-        window.draw(the_sign_sprite);
+        
+        for(int i =5; i>=0; i--)
+        {
+            window.draw(main_menu_buttons_sprite[i][selected == i ? 1 : 0]);
+        }
         //window.draw(menu_text[0]);
+        window.draw(menu_rocks_sprite);
+        window.draw(tool_tip_sprite);
+        window.draw(the_sign_sprite);
         window.display();
     };
     
@@ -709,8 +968,7 @@ struct mainMenu{
         window.clear();
         window.draw(main_menu_background_sprite);
         window.draw(logo_sprite);
-        window.draw(menu_rocks_sprite);
-        //window.draw(rrs);
+
         for(int i = 0; i < 4; i++)
         {
             window.draw(single_player_sprite[i][selected == i ? 1 : 0]);
@@ -718,9 +976,10 @@ struct mainMenu{
                 continue;
             window.draw(quads_sprite[i]);
         }
+
+        window.draw(menu_rocks_sprite);
         window.draw(tool_tip_sprite);
-        
-    window.display();
+        window.display();
     }
 
     void draw_multiplayer_menu(RenderWindow& window)
@@ -744,49 +1003,86 @@ struct mainMenu{
     void draw_achievements_menu(RenderWindow& window)
     {
         window.clear();
+        window.draw(main_menu_background_sprite);
+        window.draw(logo_sprite);
+        window.draw(menu_rocks_sprite);
         window.display();
     }
 
     void draw_help_menu(RenderWindow& window)
     {
         window.clear();
+        window.draw(main_menu_background_sprite);
+        window.draw(logo_sprite);
+        window.draw(menu_rocks_sprite);
         window.display();
     }
 };
 
-void start();
-void update(float dt);
-void draw_mermaid(RenderWindow& window);
-void mermaidMovement(Sprite& mermaid, float speed);
-void mermaidAnimation(Sprite& mermaid, Texture& mermaidTexture, int& fraame);
-
-Texture mermaidTexture;
-Sprite mermaid;
-
-int frame = 0;
-float timer = 0;
-
 const int MAX_STARS = 30;
 
-Texture starTexture;
-Sprite stars[MAX_STARS];
-bool active[MAX_STARS];
+struct Mermaid{
+    Texture mermaidTexture;
+    Sprite mermaid;
 
-float starTimer = 0;
+    int frame = 0;
+    float timer = 0;
+
+    Texture starTexture;
+    Sprite stars[MAX_STARS];
+    bool active[MAX_STARS];
+    
+    float starTimer = 0;
+
+    void start_mermaid();
+    void update_mermaid(float dt);
+    void draw_mermaid(RenderWindow& window);
+    void mermaidMovement(float speed);
+    void mermaidAnimation(int& fraame);
+};
+
+struct SORRY {
+    Sprite sprites[5];
+    Texture textures[5];
+    bool draw = 0;
+    float timer = 0;
+    bool active = 0;
+};
+
+struct Cont {
+    Text CONTtext, YEStext, NOtext, ContinuesLeft;
+	Texture CONTtexture, YESt[2], NOt[2];
+	Sprite CONTsprite, YESsprite[2], NOsprite[2]; //where 0 is nonactivated and 1 is activated
+    bool showen = 0;
+
+};
+
+struct Preal {
+    bool aten;
+};
+fishes enemy[100];
+
+
+Cont Continue;
+SORRY sorry;
+fishes smallFish, medFish, bigFish, player;
+Preal preal;
 
 int main()
 {
     mainMenu* menu = nullptr;
-    Vector2f res = {1920,1080};
-    RenderWindow window(VideoMode(res.x, res.y), "Feeding frenzy 2");
+    GameSettings settings;
+    RenderWindow window;
+    window_mode(window, settings.controls[2], settings.res);
     Event event;
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 1; // 0 for start menu, 1 -> mermaid animation
+    short scene = 2; // 0 for start_mermaid menu, 1 -> mermaid animation, 2-> shark
     Clock clock;
-
-    start();
+    Mermaid mermaid; Shark shark;
+    mermaid.start_mermaid();
+    shark.start();
     while (window.isOpen())
     {
         float dt = clock.restart().asSeconds();
@@ -795,7 +1091,7 @@ int main()
             if (event.type == Event::Closed)
                 window.close();
             if(menu)
-                menu->handle_movements(event, scene, window);
+                menu->handle_movements(event, scene, window, settings);
         }
         switch (scene)
         {
@@ -803,20 +1099,81 @@ int main()
             if (!menu)
             {
                 menu = new mainMenu();
-                menu->load_assets(res);
+                menu->load_assets(settings.res, settings);
             }
-            menu->update_menu_scenes(window);
+            menu->update_menu_scenes(window, settings);
             break;
         case 1:
-            update(dt);
-            window.clear();
-            draw_mermaid(window);
-            window.display();
-        break;
+            mermaid.update_mermaid(dt);
+            mermaid.draw_mermaid(window);
+            break;
+        case 2:
+            shark.update(dt);
+            shark.draw(window);
+            break;
+        }
+
+
+            while (window.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                window.close();
+            }
+
+            if (event.type == Event::KeyPressed)
+            {
+                if (event.key.code == Keyboard::Space)
+                {
+                    if (!shark.isTurning && !shark.eating)
+                    {
+                        shark.isTurning = true;
+                        shark.turnTimer = 0;
+                        shark.sharkFrame = 0;
+                    }
+                }
+
+                if (event.key.code == Keyboard::G)
+                {
+                    if (!shark.eating)
+                    {
+                        shark.eating = true;
+                        shark.eatFrame = 0;
+                        shark.eatTimer = 0;
+                    }
+                }
+            }
         }
     }
 
+
     return 0;
+}
+
+
+
+
+void addfishs(Texture& t, int f, int w, int h, const int n) {
+    for (int i = 0; i < n; i++) {
+        enemy[i] = fishes(t, f, w, h);
+        enemy[i].sprite.setPosition(rand() % 800, rand() % 600);
+        enemy[i].speed = rand() % 100 + 100; // to make speed random
+    }
+
+}
+
+Vector2f Mouthposition(fishes& player) {
+    Vector2f pos = player.sprite.getPosition();
+    float offset = player.frameW / 2;
+    if (player.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
+    else
+        return Vector2f(pos.x - offset, pos.y);
+}
+
+void setback(Sprite& sp, Texture& t) { // to make background suit with window
+    sp.setTexture(t);
+    sp.setScale(
+        1600.f / t.getSize().x,
+        900.f / t.getSize().y
+    );
 }
 
 void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove) {
@@ -849,31 +1206,379 @@ void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector
 
 }
 
+int start() {
+
+    //test stuff//
+    player.frameW = 356 / 2;
+    player.frameH = 167;
+
+    smallFish.frameW = 127;
+    smallFish.frames = 105;
+
+    medFish.frameW = 127;
+    medFish.frames = 105;
+
+    bigFish.frameW = 127;
+    bigFish.frames = 105;
+
+    smallFish.texture.loadFromFile("Assets\\Untitled-1.png");
+    smallFish.sprite.setTexture(smallFish.texture);
+    smallFish.sprite.setPosition(900, 100);
+    smallFish.sprite.setScale(.7, .7);
+
+    medFish.texture.loadFromFile("Assets\\Untitled-1.png");
+    medFish.sprite.setTexture(medFish.texture);
+    medFish.sprite.setPosition(900, 300);
+    medFish.sprite.setScale(1.2, 1.2);
+
+    bigFish.texture.loadFromFile("Assets\\Untitled-1.png");
+    bigFish.sprite.setTexture(bigFish.texture);
+    bigFish.sprite.setPosition(900, 500);
+    bigFish.sprite.setScale(2, 2);
+    //  //
+
+
+    player.size = 15; // then 35 then 55
+    smallFish.size = 10;
+    medFish.size = 30;
+    bigFish.size = 50;
+
+    smallFish.score = 10;
+    medFish.score = 20;
+    bigFish.score = 50;
+
+    player.texture.loadFromFile("Assets\\fish.png");
+    player.sprite.setTexture(player.texture);
+    player.sprite.setPosition(320, 450);
+    player.sprite.setTextureRect(IntRect(0, 0, player.frameW, player.frameH));
+    player.sprite.setScale(1.0f, 1.0f);
+
+
+    score.font.loadFromFile("Assets\\font.TTF");
+    for (int q = 0; q < 7; q++) {
+        score.FRENZYiText[q].setFont(score.font);
+        score.FRENZYiText[q].setPosition(200 + 20 * q, 200);
+        score.FRENZYiText[q].setString(string(1, score.word[q]));
+        score.FRENZYiText[q].setCharacterSize(40);
+    }
+    score.scoretext.setFont(score.font);
+    score.scoretext.setPosition(300, 300);
+    score.scoretext.setString(to_string(score.score));
+    score.scoretext.setCharacterSize(30);
+
+
+    sorry.textures[0].loadFromFile("Assets\\s.jpeg");
+    sorry.textures[1].loadFromFile("Assets\\o.jpeg");
+    sorry.textures[2].loadFromFile("Assets\\r1.jpeg");
+    sorry.textures[3].loadFromFile("Assets\\r2.jpeg");
+    sorry.textures[4].loadFromFile("Assets\\y.jpeg");
+
+    for (int w = 0; w < 5; w++) {
+        sorry.sprites[w].setTexture(sorry.textures[w]);
+        sorry.sprites[w].setPosition(80, 200 + 10 * w);
+    }
+
+
+	Continue.CONTtexture.loadFromFile("Assets\\CONT.png");
+	Continue.CONTsprite.setTexture(Continue.CONTtexture);
+	Continue.YESt[0].loadFromFile("Assets\\nonactive yes.png");
+	Continue.YESt[1].loadFromFile("Assets\\active yes.png");
+	Continue.YESsprite[0].setTexture(Continue.YESt[0]);
+	Continue.YESsprite[1].setTexture(Continue.YESt[1]);
+	Continue.YESsprite[0].setPosition(130, 600);
+	Continue.YESsprite[1].setPosition(130, 600);
+	Continue.NOt[0].loadFromFile("Assets\\nonactive no.png");
+	Continue.NOt[1].loadFromFile("Assets\\active no.png");
+	Continue.NOsprite[0].setTexture(Continue.NOt[0]);
+	Continue.NOsprite[1].setTexture(Continue.NOt[1]);
+	Continue.NOsprite[0].setPosition(160, 600);
+	Continue.NOsprite[1].setPosition(160, 600);
+    Continue.ContinuesLeft.setFont(score.font);
+	Continue.ContinuesLeft.setPosition(100, 650);
+	Continue.ContinuesLeft.setString("continues left: " + to_string(score.trials));
+    return 0;
+}
+
+int scoring(Shark &shark, float dt) {
+    int greenCount = 0, redCount = 0;
+    score.timer += dt;
+
+    if (player.ate) {
+        if (score.timer < 1) {
+            if (score.currentFrenzy < 7) {
+                score.FRENZYi[score.currentFrenzy]++;
+                score.currentFrenzy++;
+            }
+        }
+        score.lessThanSec = 1;
+        score.timer = 0;
+        player.ate = 0;
+    }
+
+    if (player.aten) {
+        player.dead = 1;
+        score.lessThanSec = 0;
+        //dead and back
+        for (int q = 0; q < 7; q++) {
+            score.FRENZYi[q] = 0;
+            score.FRENZYiText[q].setFillColor(Color::White);
+        }
+        dead();
+        player.aten = 0;
+    }
+
+    if (score.lives <= 0)
+        score.lives = 0;
+
+    if (score.timer >= 1) {
+        if (score.currentFrenzy > 0) {
+            score.currentFrenzy--;
+            if (score.FRENZYi[score.currentFrenzy] > 0) {
+                score.FRENZYi[score.currentFrenzy]--;
+            }
+        }
+        score.timer = 0;
+    }
+
+    if (shark.tailBite)         score.score += score.taileBscore * score.bouns;
+
+    if (preal.aten)         score.score += score.prealscore * score.bouns;
+
+
+    for (int q = 0; q < 7; q++) {
+        if (score.FRENZYi[q] <= 0) {
+            score.FRENZYi[q] = 0;
+            score.FRENZYiText[q].setFillColor(Color::White);
+        }
+        else if (score.FRENZYi[q] == 1) {
+            greenCount++;
+            score.FRENZYiText[q].setFillColor(Color::Green);
+        }
+        else if (score.FRENZYi[q] >= 2) {
+            score.FRENZYi[q] = 2;
+            redCount++;
+            score.FRENZYiText[q].setFillColor(Color::Red);
+        }
+    }
+    if (greenCount == 7 && score.bouns < 2) {
+        score.bouns = 2;
+    }
+
+    if (redCount == 7 && score.bouns < 3) {
+        score.bouns = 3;
+    }
+
+    if (score.scale >= 30) {
+        score.medFishCanBeAten = 1;
+    }
+    if (score.scale >= 80) {
+        score.bigFishCanBeAten = 1;
+    }
+
+    if (score.score >= 300 * score.livelnum) {
+        player.size = 55;
+    }
+    else if (score.score >= 1200 * score.livelnum) {
+        player.size = 35;
+    }
+
+    score.scoretext.setString(to_string(score.score));
+
+    return score.score;
+}
+
+void playermovement(float dt, fishes& fish, Sprite& sprite, Texture& t, RenderWindow& window) {
+    Vector2f target = window.mapPixelToCoords(Mouse::getPosition(window));
+    Vector2f direction = target - fish.sprite.getPosition();
+
+    float length = sqrt(direction.x * direction.x + direction.y * direction.y);
+    if (length > 5) {
+        direction /= length;
+        if (direction.x > 0) {
+            fish.currentframe = 1;
+        }
+        else if (direction.x < 0) {
+            fish.currentframe = 0;
+        }
+
+        fish.sprite.setTextureRect(IntRect(fish.currentframe * fish.frameW, 0, fish.frameW, fish.frameH));
+        fish.sprite.move(direction.x * score.speedP * dt, direction.y * score.speedP * dt);
+    }
+}
+
+void intersection() {
+    if (player.dead) return;
+}
+
+int draw(RenderWindow& window, float dt) {
+
+    if (player.draw) window.draw(player.sprite);
+    if (smallFish.draw) window.draw(smallFish.sprite);
+    if (medFish.draw) window.draw(medFish.sprite);
+    if (bigFish.draw) window.draw(bigFish.sprite);
+    window.draw(score.scoretext);
+
+    for (int q = 0; q < 7; q++) {
+        window.draw(score.FRENZYiText[q]);
+    }
+
+    Sorry(window, dt);
+    ContinueY_N(window);
+
+    return 0;
+}
+
+void dead() {
+    player.draw = 0;
+
+    player.sprite.setPosition(200, -100);
+
+    if (score.lives > 0) {
+        score.lives--;
+        sorry.active = 1;
+        sorry.timer = 0;
+        // Don't call Sorry()
+    }
+    else {
+        score.lives = 0;
+        score.trials--;
+        Continue.showen = 1;
+        //screen off
+        // Don't call ContinueY_N()
+
+    }
+
+    if (score.trials <= 0) {
+        score.lives = 0;
+        //gameover
+    }
+}
+
+void Sorry(RenderWindow& window, float dt) {
+
+    if (!sorry.active) return;
+
+    sorry.timer += dt;
+
+    if (sorry.timer < 2) {
+        player.draw = 0;
+        for (int w = 0; w < 5; w++) {
+            window.draw(sorry.sprites[w]);
+        }
+    }
+    else {
+
+        player.dead = 0;
+        player.draw = 1;
+        if (player.sprite.getPosition().y < 250) {
+            player.sprite.move(0, 350 * dt);
+        }
+        else {
+            player.aten = 0;//--------------------------
+            sorry.timer = 0;
+            sorry.active = 0;
+        }
+        return;
+    }
+}
+
+void ContinueY_N(RenderWindow& window) {
+    if (!Continue.showen) return;
+    //change screen
+    
+    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
+    bool hoverYES = Continue.YESsprite[0].getGlobalBounds().contains(mouse);
+    bool hoverNO = Continue.NOsprite[0].getGlobalBounds().contains(mouse);
+    
+    window.draw(hoverYES ? Continue.YESsprite[1] : Continue.YESsprite[0]);
+    window.draw(hoverNO ? Continue.NOsprite[1] : Continue.NOsprite[0]);
+
+    window.draw(Continue.ContinuesLeft);
+
+    if (Mouse::isButtonPressed(Mouse::Left)) {
+        int mouseX = Mouse::getPosition(window).x;
+        int mouseY = Mouse::getPosition(window).y;
+
+        if (Continue.YESsprite[0].getGlobalBounds().contains(mouseX, mouseY)) {
+            //player comes in again
+            //trials--;                             
+            score.lives = 3;
+            player.sprite.setPosition(200, -100);
+            player.draw = 1;
+            player.dead = 0;
+            player.aten = 0;
+            Continue.showen = 0;
+        }
+        else if (Continue.NOsprite[0].getGlobalBounds().contains(mouseX, mouseY)) {
+            //gameover
+            window.close();
+        }
+    }
+}
+
+int mouthintersect(fishes& a, fishes& b) {
+    if (&a == &b) return 0;
+
+    fishes& bigger = (a.size > b.size) ? a : b;
+    fishes& smaller = (a.size > b.size) ? b : a;
+
+    if (smaller.aten) return 0;
+
+    Vector2f mouth = Mouthposition(bigger);
+    Vector2f targetPos = smaller.sprite.getPosition();
+
+    float dx = mouth.x - targetPos.x;
+    float dy = mouth.y - targetPos.y;
+    float dist = sqrt(dx * dx + dy * dy);
+
+    float radius = smaller.frameW / 2;
+
+    if (dist <= radius) {
+        // bigger fish eats smaller one
+
+        bigger.ate = 1;
+        smaller.aten = 1;
+        smaller.dead = 1;
+        smaller.draw = 0;
+
+        if (player.ate) {
+            score.score += smaller.score * score.bouns;
+        }
+
+        return 1;
+    }
+    else if (dist <= radius * 2) {
+        // if the smaller fish isnt the player, then it should run away
+        return 2;
+    }
+    else {
+        // two fishs are far from each other so nothing happens
+        return 0;
+    }
+
+}
+
 //MOVEMENT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void mermaidMovement(Sprite& mermaid, float speed)
+void Mermaid::mermaidMovement(float speed)
 {
     Vector2f pos = mermaid.getPosition();
     pos.x -= speed;
     mermaid.setPosition(pos);
 }
 
-
 //ANIMATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-void mermaidAnimation(Sprite& mermaid, Texture& texture, int& frame)
+void Mermaid::mermaidAnimation(int& frame)
 {
     int frameWidth = 3011 / 10;
     int frameHeight = 202 / 2;
 
     int column = frame % 10;
     int row = frame / 10;
-    mermaid.setTexture(texture);
+    mermaid.setTexture(mermaidTexture);
     mermaid.setTextureRect(IntRect(column * frameWidth, row * frameHeight, frameWidth, frameHeight));
-
 }
 
-
-
-void start()
+void Mermaid::start_mermaid()
 {
     mermaidTexture.loadFromFile("Sprites\\fish sprites\\Mermaid.png");
 
@@ -891,9 +1596,7 @@ void start()
     }
 }
 
-
-
-void update(float dt)
+void Mermaid::update_mermaid(float dt)
 {
     timer += dt;
 
@@ -944,15 +1647,13 @@ void update(float dt)
         }
     }
 
-    mermaidMovement(mermaid, 0.17f);
-    mermaidAnimation(mermaid, mermaidTexture, frame);
+    mermaidMovement(0.17f);
+    mermaidAnimation(frame);
 }
 
-
-
-
-void draw_mermaid(RenderWindow& window)
+void Mermaid::draw_mermaid(RenderWindow& window)
 {
+    window.clear();
     window.draw(mermaid);
 
     for (int i = 0; i < MAX_STARS; i++)
@@ -960,4 +1661,190 @@ void draw_mermaid(RenderWindow& window)
         if (active[i])
             window.draw(stars[i]);
     }
+
+    window.display();
+}
+
+void Shark::start()
+{
+    if(!signalTexture.loadFromFile("Sprites\\unkown 2\\dangerSign.png")) cout << "danger sign is not found"<< endl;
+    signal.setTexture(signalTexture);
+
+    if(!sharkTexture.loadFromFile("Sprites\\fish sprites\\Barracuda.png")) cout << "shark texture is not found"<< endl;
+    shark.setTexture(sharkTexture);
+    shark.setScale(2.0f, 2.0f);
+
+    fromRight = true;
+
+    if (fromRight) {
+        startPos = Vector2f(1440 - signal.getGlobalBounds().width, 300);
+    }
+    else {
+        startPos = Vector2f(0, 300);
+    }
+    signal.setPosition(startPos);
+
+    if (fromRight) {
+        shark.setPosition(1440 + 200, startPos.y);
+    }
+    else {
+        shark.setPosition(-200, startPos.y);
+    }
+}
+
+void Shark::update(float dt)
+{
+    sharkEntrance(sharkTimer, flashCount, dt, startPos, sharkReady);
+
+    if (!sharkReady) {
+        return;
+    }
+
+    if (eating)
+    {
+        eatTimer += dt;
+
+        if (eatTimer >= 0.1f)
+        {
+            eatTimer = 0;
+            eatFrame++;
+
+            if (eatFrame >= 6)
+            {
+                eatFrame = 0;
+                eating = false;
+            }
+        }
+
+        sharkAnimation(eatFrame, 0, 6);
+        return;
+    }
+
+    if (isTurning)
+    {
+        turnTimer += dt;
+        sharkAnimTimer += dt;
+
+        if (sharkAnimTimer >= 0.1f)
+        {
+            sharkAnimTimer = 0;
+            sharkFrame++;
+            if (sharkFrame >= 5) sharkFrame = 0;
+        }
+
+        sharkAnimation(sharkFrame, 2, 5);
+
+        if (turnTimer >= 0.6f)
+        {
+            isTurning = false;
+            sharkFrame = 0;
+            turnTimer = 0;
+            fromRight = !fromRight;
+
+            if (fromRight)
+                shark.setScale(2.0f, 2.0f);
+            else
+                shark.setScale(-2.0f, 2.0f);
+        }
+
+        return;
+    }
+
+    sharkAnimTimer += dt;
+
+    if (sharkAnimTimer >= 0.1f)
+    {
+        sharkAnimTimer = 0;
+        sharkFrame++;
+
+        if (sharkFrame >= 14)
+            sharkFrame = 0;
+    }
+
+    sharkAnimation(sharkFrame, 1, 14);
+    sharkMovement(300.0f, fromRight, dt);
+}
+
+void Shark::draw(RenderWindow& window)
+{
+    window.clear();
+    if (!sharkReady) {
+        if (showSignal)
+            window.draw(signal);
+    }
+    else {
+        window.draw(shark);
+    }
+    window.display();
+}
+
+void Shark::sharkMovement(float speed, bool fromRight, float deltaTime)
+{
+    Vector2f pos = shark.getPosition();
+
+    if (fromRight) {
+        pos.x -= speed * deltaTime;
+    }
+    else {
+        pos.x += speed * deltaTime;
+    }
+    shark.setPosition(pos);
+}
+
+void Shark::sharkEntrance(float& timer, int& flashCount, float deltaTime, Vector2f startPosition, bool& finished)
+{
+    const int totalFlashes = 6;
+    const float totaltime = 4.0f;
+    const float everyFlashTimeInterval = totaltime / totalFlashes / 2;
+    
+    if (finished) {
+        return ;
+    }
+    timer += deltaTime;
+
+    if (flashCount < totalFlashes)
+    {
+        if (timer >= everyFlashTimeInterval)
+        { 
+            
+
+            showSignal = !showSignal;
+            timer = 0;
+
+
+            if (!showSignal) {
+                flashCount++;
+            }
+        }
+    }
+    else
+    {
+        if (shark.getPosition().x < 0) {
+            shark.setPosition(-200, startPosition.y);
+        }
+        else {
+            shark.setPosition(1440 + 200, startPosition.y);
+        }
+        finished = true;
+    }
+}
+
+void Shark::sharkAnimation(int frame, int row, int frameCountInEveryRow)
+{
+    int frameHeight = sharkTexture.getSize().y / 3;
+
+
+    int baseFrameWidth = sharkTexture.getSize().x / 14;
+    int frameWidth = baseFrameWidth;
+    int column = frame % frameCountInEveryRow;
+
+    shark.setTextureRect(IntRect(column * frameWidth, row * frameHeight, frameWidth, frameHeight));
+    shark.setOrigin(frameWidth / 2, frameHeight / 2);
+}
+
+void window_mode(RenderWindow& window, bool fullscreen, Vector2f res) {
+    if (fullscreen)
+        window.create(VideoMode(res.x, res.y), "Feeding Frenzy 2 - Shipwrech Showdown", Style::Fullscreen);
+    else
+        window.create(VideoMode(res.x, res.y), "Feeding Frenzy 2 - Shipwrech Showdown");
 }
