@@ -12,24 +12,34 @@
 using namespace std;
 using namespace sf;
 
-struct Score{
-int score = 0, bouns = 1, smallFscore = 10, medFscore = 20, bigFscore = 50,
-taileBscore = 100, starscore = 60, prealscore = 50,
-scale = 0, lives = 3, trials = 3, speedP = 800, speedE = 100, livelnum = 1,
-currentFrenzy = 0, i = 0; //for counting frenzy word
 
-int FRENZYi[7]{ 0,0,0,0,0,0,0 };
-float dt, timer = 0;
+struct Score {
+    int score = 0, bouns = 1, smallFscore = 10, medFscore = 20, bigFscore = 50,
+    taileBscore = 100, starscore = 60, prealscore = 50,
+    scale = 0, lives = 3, trials = 3, speedP = 800, speedE = 100, livelnum = 1,
+    currentFrenzy = 0, i = 0; //for counting frenzy word
 
-bool lessThanSec, medFishCanBeAten = 0, bigFishCanBeAten = 0;
+    int FRENZYi[7]{ 0,0,0,0,0,0,0 };
+    float dt, timer = 0;
 
-Clock clock1;
+    bool lessThanSec, medFishCanBeAten = 0, bigFishCanBeAten = 0;
 
-Text FRENZYiText[7], scoretext;
-Font font;
-string word = "FRENZY!";
+    Clock clock1;
+
+    Text FRENZYiText[7], scoretext;
+    Font font;
+    string word = "FRENZY!";
 };
-Score score;
+
+struct GameSettings {
+    short sound_volume = 100, music_volume = 100;
+    bool controls[3] ={1,1,1}; // 0 -> sfx, 1-> music, 2->full screen, 3 -> 0
+    //bool sfx = 1, music = 1, full_screen = 1, font = 0;
+    Vector2f res = {1920,1080};
+};
+
+    Score score; GameSettings settings;
+
 struct fishes {
     bool aten = 0, ate = 0, playerIntersectWFish = 0, draw = 1, dead = 0;
     int size;
@@ -47,6 +57,7 @@ struct fishes {
         frameW = 0, frameH = 0, frames = 0, anitimer = 0, countframe = currentframe = 0, speed = 100;
     }
     fishes(Texture& t, int f, int W, int H) {
+        fishes();
         texture = t;
         countframe = f;
         currentframe = 0;
@@ -61,7 +72,7 @@ struct fishes {
 
 };
 
-struct Shark{
+struct Shark {
     Texture signalTexture, sharkTexture;
     Sprite signal, shark;
 
@@ -81,9 +92,11 @@ struct Shark{
     void sharkAnimation(int frame, int row, int frameCountInEveryRow);
 };
 
+void cameraMovement(View& camera, Vector2f playerPosition, float BGWidth, float BGHeight);
+
 void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove);
 
-void window_mode(RenderWindow& window, bool full_screen, Vector2f res);
+void window_mode(RenderWindow &window, bool full_screen, Vector2f res);
 
 void addfishs(Texture& t, int f, int w, int h, const int n);
 
@@ -109,22 +122,28 @@ void ContinueY_N(RenderWindow& window);
 
 int mouthintersect(fishes& a, fishes& b);
 
-struct GameSettings{
-    short sound_volume = 100, music_volume = 100;
-    bool controls[4] ={1,1,1,0}; // 0 -> sfx, 1-> music, 2->full screen, 3 -> 0
-    //bool sfx = 1, music = 1, full_screen = 1, font = 0;
-    Vector2f res = {1920,1080};
+struct commonAssets {
 
     Font game_font;
+    Texture main_menu_background_text, menu_rocks_text;
+    Sprite main_menu_background_sprite, menu_rocks_sprite;
 
-    void load_essentials()
-    {
-        if (!game_font.loadFromFile("Fonts\\hint.ttf")) cout << "Menu font is not found" << endl;
-        else controls[3] = 1;
-    }
+    void load();
 };
 
-struct help_and_options{
+struct gameSounds {
+    SoundBuffer click_buffer, main_theme_buffer;
+    Sound click_sound, main_theme_sound;
+
+//    void load();
+    void load();
+
+    void Click_sound();
+
+    void play_sound();
+};
+
+struct helpAndOptions {
 
     struct menuButtons{
 
@@ -150,7 +169,7 @@ struct help_and_options{
         }
     };
 
-
+    RenderWindow* window = nullptr;
     menuButtons buttons[4];
     Texture buttons_texture[6][2], menu_shell_texture[6],Rarrow_texture[1][2], Larrow_texture[1][2], mouse_texture, reft;
     Sprite buttons_sprite[6][2],menu_shell_sprite[6],Rarrow_sprite[1][2], Larrow_sprite[1][2],mouse_sprite, refs;
@@ -158,325 +177,57 @@ struct help_and_options{
     how_to_play_string[2] {"Welcome to the beautiful Frenzy Coast.\nEnjoy the sights, but don't get too comfortable...\nA fish still needs his lunch, and it's a fish-eat-fish\nworld out there!",
         "- Use your mouse to control Boris.\n- Eat fish that are smaller than you.\n- Avoid anything that's larger than you.\n- Eat enough fish and you'll grow bigger!\n"};
     Text settings_text[4],how_to_play_text[2], sound_volume, music_volume;
+    commonAssets* assets = nullptr;
+    gameSounds* sound = nullptr;
 
-    void load_assets(Vector2f res, Font& game_font)
+    short selected = -1, options_scene = 0; // main-> 0, controls -> 1, how to play -> 3, settings -> 2, credits -> 4
+
+    void load_assets(Vector2f res);
+
+    void handle_movements(Event& event, short &scene);
+
+    void update_menu_scenes();
+
+    void draw_basics();
+
+    void draw();
+
+    void update_settings();
+
+    void draw_settings();
+
+    void draw_controls();
+
+    void draw_how_to_play();
+
+    void draw_credits();
+};
+
+struct pause_menu {
+    Texture buttons[3][2];
+    Sprite buttons_sprite[3][2];
+
+    void load()
     {
-        reft.loadFromFile("Sprites\\menu\\2.png");
-        refs.setTexture(reft);
-        for(int i =0; i< 4; i++)
-            buttons[i].load_buttons();
-        
-        if(!mouse_texture.loadFromFile("Sprites\\menu\\mouse.png")) cout << "mouse texture is not found" << endl;
-        
-        if(!Rarrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small.png")) cout << "right arrow texture is not found" << endl;
-        if(!Rarrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_glow.png")) cout << "glowing right arrow texture is not found" << endl;
-        if(!Larrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small_left.png")) cout << "left arrow texture is not found" << endl;
-        if(!Larrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_left_glow.png")) cout << "glowing left arrow texture is not found" << endl;
-        
-        if(!menu_shell_texture[0].loadFromFile("Sprites\\menu\\shell_stageBack.png")) cout << "main shell's not found" << endl;
-        if(!menu_shell_texture[1].loadFromFile("Sprites\\menu\\help-and-options-shell1.png")) cout << "help-and-optionsshell's not found" << endl;
-        if(!menu_shell_texture[2].loadFromFile("Sprites\\menu\\settings-shell.png")) cout << "settings shell is not found" << endl;
-        if(!menu_shell_texture[3].loadFromFile("Sprites\\menu\\controls-shell.png")) cout << "controls shell is not found" << endl;
-        if(!menu_shell_texture[4].loadFromFile("Sprites\\menu\\how-to-play-shell.png")) cout << "controls shell is not found" << endl;
-        
-        if(!buttons_texture[0][0].loadFromFile("Sprites\\menu\\controls.png")) cout << "not found" << endl;
-        if(!buttons_texture[0][1].loadFromFile("Sprites\\menu\\controls-glow.png")) cout << "not found" << endl;
-        if(!buttons_texture[1][0].loadFromFile("Sprites\\menu\\how-to-play.png")) cout << "not found" << endl;
-        if(!buttons_texture[1][1].loadFromFile("Sprites\\menu\\how-to-play-glow.png")) cout << "not found" << endl;
-        if(!buttons_texture[2][0].loadFromFile("Sprites\\menu\\settings.png")) cout << "not found" << endl;
-        if(!buttons_texture[2][1].loadFromFile("Sprites\\menu\\settings-glow.png")) cout << "not found" << endl;
-        if(!buttons_texture[3][0].loadFromFile("Sprites\\menu\\credits.png")) cout << "not found" << endl;
-        if(!buttons_texture[3][1].loadFromFile("Sprites\\menu\\credits-glow.png")) cout << "not found" << endl;
-        if(!buttons_texture[4][0].loadFromFile("Sprites\\menu\\done.png")) cout << "not found" << endl;
-        if(!buttons_texture[4][1].loadFromFile("Sprites\\menu\\done-glow.png")) cout << "not found" << endl;
-        if(!buttons_texture[5][0].loadFromFile("Sprites\\menu\\lil-done.png")) cout << "not found" << endl;
-        if(!buttons_texture[5][1].loadFromFile("Sprites\\menu\\lil-done-glow.png")) cout << "not found" << endl;
+        if(!buttons[0][0].loadFromFile("")) cout << ""<<endl;
+        if(!buttons[0][1].loadFromFile("")) cout << ""<<endl;
+        if(!buttons[1][0].loadFromFile("")) cout << ""<<endl;
+        if(!buttons[1][1].loadFromFile("")) cout << ""<<endl;
+        if(!buttons[2][0].loadFromFile("")) cout << ""<<endl;
+        if(!buttons[2][1].loadFromFile("")) cout << ""<<endl;
 
-        for(int i = 0; i < 6; i++)
+        for(int i = 0;i < 3; i++)
         {
             for(int j =0; j < 2; j++)
             {
-            buttons_sprite[i][j].setTexture(buttons_texture[i][j]);
-            buttons_sprite[i][j].setOrigin(buttons_sprite[i][j].getGlobalBounds().width/2,buttons_sprite[i][j].getGlobalBounds().height/2);
-            if(!j)
-                buttons_sprite[i][j].setScale(0.245f, 0.245f);
-            else
-                buttons_sprite[i][j].setScale(0.255f, 0.255f);
-
-            switch (i)
-            {
-                case 0: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.265f); break;
-                case 1: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.38f); break;
-                case 2: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.495f); break;
-                case 3: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.61f); break;
-                case 4: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.79f); break;
-                case 5: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.79f);
-                    if(!j)
-                        buttons_sprite[i][j].setScale(0.2,0.2);
-                    else
-                        buttons_sprite[i][j].setScale(0.22,0.22);
-                break;
-            }
-
-            if(i == 1 || i == 2)
-            {
-                if(!j)
-                    buttons_sprite[i][j].setScale(0.245, 0.238);
-                else
-                    buttons_sprite[i][j].setScale(0.255, 0.239);
-            }
+                buttons_sprite[i][j].setTexture(buttons[i][j]);
+                buttons_sprite[i][j].setOrigin(buttons_sprite[i][j].getGlobalBounds().width/2,buttons_sprite[i][j].getGlobalBounds().height/2);
             }
         }
-
-        for(int i =0; i < 5;i++)
-        {
-            menu_shell_sprite[i].setTexture(menu_shell_texture[i]);
-            menu_shell_sprite[i].setOrigin(menu_shell_sprite[i].getGlobalBounds().width/2, menu_shell_sprite[i].getGlobalBounds().height/2);
-            menu_shell_sprite[i].setPosition(res.x /2, res.y * 0.51f);
-            menu_shell_sprite[i].setScale(1.76,1.75);
-        }
-
-        mouse_sprite.setTexture(mouse_texture);
-        mouse_sprite.setOrigin(mouse_sprite.getGlobalBounds().width/2, mouse_sprite.getGlobalBounds().height/2);
-        mouse_sprite.setPosition(res.x * 0.43f, res.y * 0.5f);
-        mouse_sprite.setScale(0.9f,0.9f);
-
-        for(int i =0; i < 4; i++)
-        {
-            settings_text[i].setString(settings_string[i]);
-            settings_text[i].setFont(game_font);
-            settings_text[i].setFillColor(Color::White);
-            settings_text[i].setOutlineColor(Color::Black);
-            settings_text[i].setCharacterSize(48);
-            settings_text[i].setOutlineThickness(2);
-            FloatRect bounds = settings_text[i].getLocalBounds();
-            settings_text[i].setOrigin(bounds.left + bounds.width, bounds.top);
-            
-            settings_text[i].setPosition(0.477f * res.x, 0.272f * res.y + i * 100);
-        }
-        
-        for(int i =0; i < 2; i++)
-        {
-            how_to_play_text[i].setString(how_to_play_string[i]);
-            how_to_play_text[i].setFont(game_font);
-            how_to_play_text[i].setFillColor(Color::White);
-            how_to_play_text[i].setOutlineColor(Color::Black);
-            how_to_play_text[i].setCharacterSize(34);
-            how_to_play_text[i].setOutlineThickness(2);
-            how_to_play_text[i].setOrigin(how_to_play_text[i].getGlobalBounds().width/2,how_to_play_text[i].getGlobalBounds().height/2);
-        }
-
-        how_to_play_text[0].setPosition((0.44f) * res.x,(0.335f) * res.y);
-        how_to_play_text[1].setPosition((0.435f) * res.x,(0.585) * res.y);
-
-        for(int i =0; i<4; i++)
-            for(int j =0; j < 2;j++)
-                for(int h =0; h < 2; h++)
-                    buttons[i].checkbox_sprite[j][h].setPosition(0.495f * res.x, 0.295f * res.y + i * 100);
-
-
-        
-        sound_volume.setPosition(0.495f * res.x, 0.272f * res.y);
-        sound_volume.setFont(game_font);
-        sound_volume.setFillColor(Color::White);
-        sound_volume.setOutlineColor(Color::Black);
-        sound_volume.setCharacterSize(48);
-        sound_volume.setOutlineThickness(2);
-
-    }
-
-    void handle_movements(Event& event, short &selected, short &menu_scene, RenderWindow& window, GameSettings &settings)
-    {
-
-        if (event.type == Event::KeyPressed)
-        {
-            if(menu_scene == 6)
-            {
-                if (event.key.code == Keyboard::Escape)
-                    menu_scene = 1;
-                if (event.key.code == Keyboard::Down)
-                    selected++, selected %= 5;
-                if (event.key.code == Keyboard::Up)
-                    selected = (selected - 1) + 5, selected %= 5;
-            }
-            else if(menu_scene == 13)
-            {
-                if (event.key.code == Keyboard::Escape)
-                    menu_scene = 6;
-            }
-        }
-
-        if (event.type == Event::MouseMoved)
-        {
-
-            Vector2i mousePixel = Mouse::getPosition(window);
-            Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
-
-            if(menu_scene == 6)
-            {
-                for(int i =0; i < 5; i++)
-                {
-                    if(buttons_sprite[i][0].getGlobalBounds().contains(mouse_position))
-                    {
-                        selected = i;
-                        break;
-                    }
-                    else
-                    selected = -1;
-                }
-            }
-
-            else if (menu_scene == 11)
-            {
-                for(int i = 0; i < 4; i++)
-                {
-                    if(buttons_sprite[5][0].getGlobalBounds().contains(mouse_position))
-                    {
-                        selected = 0;
-                        break;
-                    }
-                    if(buttons[i].checkbox_sprite[0][0].getGlobalBounds().contains(mouse_position))
-                    {
-                        selected = i + 1;
-                        break;
-                    }
-                    else 
-                        selected = -1;
-                }
-
-            }
-                else if(menu_scene == 12 || menu_scene == 13 || menu_scene == 14)
-                {
-                    selected = buttons_sprite[4][0].getGlobalBounds().contains(mouse_position) ? 0 : -1;
-                }
-        }
-
-        if (event.type == Event::MouseButtonPressed)
-        {
-            Vector2i mousePixel = Mouse::getPosition(window);
-            Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
-            if(event.mouseButton.button == Mouse::Left)
-            {
-                if(menu_scene == 6)
-                {
-                    if(selected == 0)
-                        menu_scene = 12, selected = -1;
-                    else if(selected == 1)
-                        menu_scene = 13;
-                    else if(selected == 2)
-                        menu_scene = 11, selected = -1;
-                    else if(selected == 3)
-                        menu_scene = 14, selected = -1;
-                    else if(selected == 4)
-                        menu_scene = 1, selected = -1;
-                }
-                else if(menu_scene == 11)
-                {
-                    if(selected == 0)
-                        menu_scene = 6, selected = -1;
-                    else if(selected == 1)
-                        settings.controls[0] = !settings.controls[0];
-                    else if(selected == 2)
-                        settings.controls[1] = !settings.controls[1];
-                    else if(selected == 3)
-                        settings.controls[2] = !settings.controls[2], window_mode(window, settings.controls[2], settings.res);
-                }
-                else if(menu_scene == 12 || menu_scene == 13 || menu_scene == 14)
-                {
-                    if(selected == 0) menu_scene = 6, selected = -1;
-                }
-            }
-        }
-    }
-
-    void draw(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(menu_rocks_sprite);
-        //window.draw(refs);
-        for(int i = 0; i < 2; i++)
-            window.draw(menu_shell_sprite[i]);
-        for(int i = 0; i < 5; i++)
-            window.draw(buttons_sprite[i][selected == i ? 1 : 0]);
-        window.display();
-    }
-
-    void update_settings(GameSettings& settings)
-    {
-        sound_volume.setString(to_string(settings.sound_volume));
-        music_volume.setString(to_string(settings.music_volume));
-        FloatRect bounds = sound_volume.getLocalBounds();
-        sound_volume.setOrigin(bounds.left + bounds.width, bounds.top);
-    }
-
-    void draw_settings(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite, GameSettings& settings)
-    {
-        update_settings(settings);
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(menu_rocks_sprite);
-        //window.draw(refs);
-        for(int i = 0; i < 3; i=i+2)
-            window.draw(menu_shell_sprite[i]);
-        
-        for(int i =0; i < 4; i++)
-        {
-            window.draw(settings_text[i]);
-        }
-        for(int i = 0; i < 4; i++)
-            window.draw(buttons[i].checkbox_sprite[settings.controls[i] ? 1 : 0][selected == (i + 1) ? 1 : 0]);
-        //window.draw(sound_volume);
-        window.draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
-        window.display();
-    }
-
-    void draw_controls(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(menu_rocks_sprite);
-
-        for(int i = 0; i < 4; i=i+3)
-        {
-            window.draw(menu_shell_sprite[i]);
-            if(i == 3)
-                continue;
-            window.draw(mouse_sprite);
-        }
-
-        window.draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
-        window.display();
-    }
-
-    void draw_how_to_play(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(menu_rocks_sprite);
-        //window.draw(refs);
-        for(int i = 0; i < 5; i=i+4)
-            window.draw(menu_shell_sprite[i]);
-        for(int i =0; i < 2; i++)
-            window.draw(how_to_play_text[i]);
-        window.draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
-        window.display();
-    }
-
-    void draw_credits(RenderWindow& window, short selected, Sprite main_menu_background_sprite,Sprite menu_rocks_sprite)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(menu_rocks_sprite);
-        //window.draw(refs);
-        for(int i = 0; i < 3; i=i+2)
-            window.draw(menu_shell_sprite[i]);
-        window.draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
-        window.display();
     }
 };
 
-struct Ingame_windows{
+struct Ingame_windows {
     void load()
     {
 
@@ -488,535 +239,50 @@ struct Ingame_windows{
     }
 };
 
-struct mainMenu{
-    help_and_options* help = nullptr;
+struct mainMenu {
+    RenderWindow* window = nullptr;
+    gameSounds *sound;
     short selected =-1, menu_scene =0;
     // scenes 0 -> click to start, 1 -> main menu, 2-> single player, 3-> multiplayer, 4-> leaderboards
     // 5 -> achievements, 6->help, 7-> quit 
     // 8 -> story mode, 9 - > story lite, 10 -> time attack, 
     // settings = 11, controls = 12, how to play = 13, credits = 14
-    Texture main_menu_background_text, logo_texture,main_menu_buttons_texture[6][2], reft, txt, menu_rocks_text,
+    Texture logo_texture,main_menu_buttons_texture[6][2], reft, txt,
     tool_tip_texture,tube_texture, ment, rr,
     single_player_texture[4][2], quads_texture[6], the_sign_texture;
-    Sprite main_menu_background_sprite,main_menu_buttons_sprite[6][2], logo_sprite, menu_rocks_sprite,
+    Sprite main_menu_buttons_sprite[6][2], logo_sprite,
     tool_tip_sprite, tube_sprite, mens, refs, txts, rrs, single_player_sprite[4][2], quads_sprite[6], the_sign_sprite;
 
     Vector2f Res;
-    SoundBuffer click_buffer, main_theme_buffer;
-    Sound click_sound, main_theme_sound;
+
     string menu_strings[6] = {"Single Player Game Modes","Multiplayer Game Modes","View Leaderboards", "See Your Achievements", "Adjust Sound and Music Settings Or Learn How tp Play", "Return to Desktop"};
     Text menu_text[6];
     Font menu_font;
-    void load_assets(Vector2f res, GameSettings &settings)
-    {
+    commonAssets* assets = nullptr;
 
-        if(!settings.controls[3])
-            settings.load_essentials();
+    void load_assets(Vector2f res );
 
-        Res = res;
-        Vector2f buttons_scale;
-        if (!main_menu_background_text.loadFromFile("Sprites\\2\\Menu assets\\mainMenu.jpg")) cout << "main menu background is not found" << endl;
-        main_menu_background_sprite.setTexture(main_menu_background_text);
-        main_menu_background_sprite.setScale(res.x/main_menu_background_text.getSize().x, res.y/main_menu_background_text.getSize().y);
-        
-        if (!rr.loadFromFile("Sprites\\menu\\ref.png")) cout << "rr's texture is not found" << endl;
-        rrs.setTexture(rr);
-        // Loading buttons!
-        if (!main_menu_buttons_texture[0][0].loadFromFile("Sprites\\menu\\single-player.png")) cout << "button 1's texture is not found" << endl;
-        if (!main_menu_buttons_texture[0][1].loadFromFile("Sprites\\menu\\single-player-glow.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!main_menu_buttons_texture[1][0].loadFromFile("Sprites\\menu\\multiplayer.png")) cout << "button 2's texture is not found" << endl;
-        if (!main_menu_buttons_texture[1][1].loadFromFile("Sprites\\menu\\multiplayer-glow.png")) cout << "glowing button 2 texture is not found" << endl;
-        if (!main_menu_buttons_texture[2][0].loadFromFile("Sprites\\menu\\leaderboards.png")) cout << "button 3's texture is not found" << endl;
-        if (!main_menu_buttons_texture[2][1].loadFromFile("Sprites\\menu\\leaderboards-glow.png")) cout << "glowing button 3 texture is not found" << endl;
-        if (!main_menu_buttons_texture[3][0].loadFromFile("Sprites\\menu\\achievements.png")) cout << "button 4's texture is not found" << endl;
-        if (!main_menu_buttons_texture[3][1].loadFromFile("Sprites\\menu\\achievements-glow.png")) cout << "glowing button 4 texture is not found" << endl;
-        if (!main_menu_buttons_texture[4][0].loadFromFile("Sprites\\menu\\help-and-options.png")) cout << "button 5's texture is not found" << endl;
-        if (!main_menu_buttons_texture[4][1].loadFromFile("Sprites\\menu\\help-and-options-glow.png")) cout << "glowing button 5 texture is not found" << endl;
-        if (!main_menu_buttons_texture[5][0].loadFromFile("Sprites\\menu\\quit.png")) cout << "button 6's texture is not found" << endl;
-        if (!main_menu_buttons_texture[5][1].loadFromFile("Sprites\\menu\\quit-glow.png")) cout << "glowing button 6 texture is not found" << endl;
+    void logo_transformation(char a);
 
-        if (!single_player_texture[0][0].loadFromFile("Sprites\\menu\\story-mode.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[0][1].loadFromFile("Sprites\\menu\\story-mode-glow.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[1][0].loadFromFile("Sprites\\menu\\story-title.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[1][1].loadFromFile("Sprites\\menu\\story-title-glow.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[2][0].loadFromFile("Sprites\\menu\\time-attack.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[2][1].loadFromFile("Sprites\\menu\\time-attack-glow.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[3][0].loadFromFile("Sprites\\menu\\back.png")) cout << "glowing button 1's texture is not found" << endl;
-        if (!single_player_texture[3][1].loadFromFile("Sprites\\menu\\back-glow.png")) cout << "glowing button 1's texture is not found" << endl;
-        
-    for(int i = 0; i < 6; i++)
-    {
-        for(int j = 0; j < 2; j++)
-        {
-            main_menu_buttons_sprite[i][j].setTexture(main_menu_buttons_texture[i][j]);
-            main_menu_buttons_sprite[i][j].setOrigin(main_menu_buttons_sprite[i][j].getGlobalBounds().width/2,main_menu_buttons_sprite[i][j].getGlobalBounds().height/2);
+    void handle_movements(Event& event, short &scene );
 
-            if(!j)
-                main_menu_buttons_sprite[i][j].setScale(0.24f, 0.24f);
-            else
-                main_menu_buttons_sprite[i][j].setScale(0.255f, 0.255f);
+    void update_menu_scenes();
 
-            switch(i)
-            {
-                case 0:
-                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.12f);
-                    if(j){ main_menu_buttons_sprite[i][j].setScale(0.3f, 0.3f); break;}
-                    main_menu_buttons_sprite[i][j].setScale(0.285f, 0.285f);
-                    break;
-                case 1:
-                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.25f);
-                    main_menu_buttons_sprite[i][j].setRotation(-1.3f);
-                    if(j) {main_menu_buttons_sprite[i][j].setScale(0.28f, 0.28f); break;}
-                    main_menu_buttons_sprite[i][j].setScale(0.265f,0.265f);
-                    break;
-                case 2:
-                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.36f);
-                    break;
-                case 3:
-                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.46f);
-                    if(j) {main_menu_buttons_sprite[i][j].setScale(0.26f, 0.26f); break;}
-                    main_menu_buttons_sprite[i][j].setScale(0.48f,0.48f);
-                    break;
-                case 4:
-                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.565f);
-                    main_menu_buttons_sprite[i][j].setRotation(-1.05f);
-                    break;
-                case 5:
-                    main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7, res.y * 0.66f);
-                    main_menu_buttons_sprite[i][j].setRotation(-1.45f);
-                    if(j) {main_menu_buttons_sprite[i][j].setScale(0.19f, 0.19f); break;}
-                    main_menu_buttons_sprite[i][j].setScale(0.18f,0.18f);
-                    break;
-            }
-        }
-    }
+    void draw_basics();
 
-        for(int i = 0; i < 4; i++)
-        {
-            for(int j =0; j < 2; j++)
-            {
-                single_player_sprite[i][j].setTexture(single_player_texture[i][j]);
-                buttons_scale= {(res.x * 0.25f) / single_player_texture[i][j].getSize().x,(res.y * 0.115f) / single_player_texture[i][j].getSize().y};
-                single_player_sprite[i][j].setScale(buttons_scale.x, buttons_scale.y);
-                if(i == 0)
-                {
-                    single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.262f);
-                    single_player_sprite[i][j].rotate(1.8);
-                }
-                else if (i == 1)
-                {
-                    single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.386f);
-                    single_player_sprite[i][j].rotate(-1.3);
-                }
-                else if (i == 2)
-                {
-                    single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.486f);
-                    single_player_sprite[i][j].rotate(1.3);
-                }
-                else
-                {
-                    single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.596f);
-                    single_player_sprite[i][j].rotate(1.3);
-                }
-            }
-        }
+    void draw_starting_menu();
 
-        // al original menu "for refrence"
-        ment.loadFromFile("men.jpg");
-        mens.setScale(res.x/ment.getSize().x, res.y/ment.getSize().y);
-        mens.setTexture(ment);
-        
-        if (!tool_tip_texture.loadFromFile("Sprites\\2\\Menu assets\\tooltip.png")) cout << "tooltip's texture is not found" << endl;
-        tool_tip_sprite.setTexture(tool_tip_texture);
-        tool_tip_sprite.setOrigin(tool_tip_sprite.getGlobalBounds().width / 2, 0);
-        tool_tip_sprite.setPosition(res.x / 2, res.y * 0.735f);
-        tool_tip_sprite.setScale((res.x * 0.5f) / tool_tip_texture.getSize().x, (res.y * 0.19f) / tool_tip_texture.getSize().y);
-        
-        if (!logo_texture.loadFromFile("Sprites\\2\\Menu assets\\logo.png")) cout << "logo's texture is not found" << endl;
-        logo_sprite.setTexture(logo_texture);
-        logo_sprite.setScale((res.x * 0.396f) / logo_texture.getSize().x, (res.y * 0.39f) / logo_texture.getSize().y);
-        logo_sprite.setPosition(res.x * 0.296f, res.y * 0.033f);
-        
-        if (!tube_texture.loadFromFile("Sprites\\2\\Menu assets\\tubes_01.png")) cout << "tube's texture is not found" << endl;
-        tube_sprite.setTexture(tube_texture);
-        tube_sprite.setOrigin(tube_texture.getSize().x / 2,tube_texture.getSize().y);
-        tube_sprite.setScale((res.x * 0.135f) / tube_texture.getSize().x, (res.y * 0.315f) / tube_texture.getSize().y);
-        tube_sprite.setPosition(res.x * 0.715f, res.y * 1.f);
-        
-        if (!main_theme_buffer.loadFromFile("Sounds\\music\\menu_theme.wav")) cout << "tube's texture is not found" << endl;
-        main_theme_sound.setBuffer(main_theme_buffer);
-        main_theme_sound.setVolume(settings.music_volume);
-        main_theme_sound.setLoop(true);
-        
-        if (!txt.loadFromFile("Fonts\\press_any_button.png")) cout << "button is not found" << endl;
-        txts.setTexture(txt);
-        txts.setScale(res.x/txt.getSize().x, res.y/txt.getSize().y);
-        //txts.setOrigin(txt.getSize().x / 2,txt.getSize().y);
-        //txts.setPosition(res.x , res.y );
-        //txts.setScale(res.x / txt.getSize().x, res.y / txt.getSize().y);
-        
-        if (!menu_font.loadFromFile("Fonts\\hint.ttf")) cout << "Menu font is not found" << endl;
-        for (int i = 0; i < 1; i++)
-        {
-            menu_text[i].setString(menu_strings[i]);
-            menu_text[i].setCharacterSize(50);
-            menu_text[i].setFillColor(Color::White);
-            menu_text[i].setOutlineColor(Color::Black);
-            menu_text[i].setOutlineThickness(2);
-            FloatRect textBounds = menu_text[i].getLocalBounds();
-            menu_text[i].setOrigin(textBounds.left + textBounds.width / 2.f,
-            textBounds.top  + textBounds.height / 2.f);
-            FloatRect tipBounds = tool_tip_sprite.getGlobalBounds();
-            menu_text[i].setPosition(tipBounds.left + tipBounds.width  / 2.f,
-            tipBounds.top  + tipBounds.height / 2.f);
-            menu_text[i].setFont(menu_font);
-            
-        }
-        
-        if (!menu_rocks_text.loadFromFile("Sprites\\2\\Menu assets\\rocks_g.png")) cout << "Rocks are not found" << endl;
-        menu_rocks_sprite.setTexture(menu_rocks_text);
-        menu_rocks_sprite.setScale((res.x/menu_rocks_text.getSize().x), res.y/menu_rocks_text.getSize().y);
-        menu_rocks_sprite.setPosition(res.x * 0.0645, res.y * 0.314f);
-        // click to start refrence "hab2a ashelha ba3deen"
-        if (!reft.loadFromFile("ref1.png")) cout << "ref's texture is not found" << endl;
-        refs.setTexture(reft);
-        refs.setScale(res.x/reft.getSize().x, res.y/reft.getSize().y);
-        if (!click_buffer.loadFromFile("Sounds\\sfx\\pop.mp3")) cout << "quad q1 is not found" << endl;
-        click_sound.setBuffer(click_buffer);
-        
-        
-        if (!the_sign_texture.loadFromFile("Sprites\\menu\\sprite_clean.png")) cout << "quad back is not found" << endl;
-        the_sign_sprite.setTexture(the_sign_texture);
-        the_sign_sprite.setPosition(res.x * 0.355, res.y * 0.785f);
-        the_sign_sprite.setScale((res.x * 0.3f) / the_sign_texture.getSize().x, (res.y * 0.1f) / the_sign_texture.getSize().y);
+    void draw_main_menu();
 
+    void draw_single_player_menu();
 
-        if (!quads_texture[0].loadFromFile("Sprites\\menu\\quad_back.png")) cout << "quad back is not found" << endl;
-        if (!quads_texture[1].loadFromFile("Sprites\\menu\\quad_ring.png")) cout << "quad ring is not found" << endl;
-        if (!quads_texture[2].loadFromFile("Sprites\\menu\\quad_q2.png")) cout << "quad q2 is not found" << endl;
-        if (!quads_texture[3].loadFromFile("Sprites\\menu\\quad_q3.png")) cout << "quad q3 is not found" << endl;
-        if (!quads_texture[4].loadFromFile("Sprites\\menu\\quad_q4.png")) cout << "quad q4 is not found" << endl;
-        if (!quads_texture[5].loadFromFile("Sprites\\menu\\quad_q1.png")) cout << "quad q1 is not found" << endl;
-        
-        for(int i = 0; i < 6; i++)
-        {
-            quads_sprite[i].setTexture(quads_texture[i]);
-            quads_sprite[i].setOrigin(quads_sprite[i].getGlobalBounds().width/2, quads_sprite[i].getGlobalBounds().height/2);
-            quads_sprite[i].setPosition(res.x * 0.69201f, res.y * 0.165f);
-            buttons_scale= {(res.x * 0.171f) / quads_texture[i].getSize().x,(res.y * 0.28f) / quads_texture[i].getSize().y};
-            quads_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
-        }
-    };
+    void draw_multiplayer_menu();
 
-    void logo_transformation(char a)
-    {
-        if (a == 'f')
-        {
-        logo_sprite.setScale((Res.x * 0.365f) / logo_texture.getSize().x, (Res.y * 0.37f) / logo_texture.getSize().y);
-        logo_sprite.setPosition(Res.x * 0.1665f, Res.y * 0.05f);
-        }
-        else
-        {
-            logo_sprite.setScale((Res.x * 0.396f) / logo_texture.getSize().x, (Res.y * 0.39f) / logo_texture.getSize().y);
-            logo_sprite.setPosition(Res.x * 0.296f, Res.y * 0.033f);
-        }
-    };
+    void draw_leaderboards_menu();
 
-    void Click_sound(GameSettings& settings)
-    {
-        if(settings.controls[0])
-            click_sound.setVolume(70);
-        else
-            click_sound.setVolume(0);
-        click_sound.play();
-    }
+    void draw_achievements_menu();
 
-    void handle_movements(Event& event, short &scene, RenderWindow& window, GameSettings &settings)
-    {
-        if (event.type == Event::KeyPressed)
-        {
-            Click_sound(settings);
-            if(menu_scene == 0 && event.key.code != Keyboard::Escape)
-            {
-                logo_transformation('f');
-                menu_scene++;
-            }
-            else if(menu_scene == 1)
-            {
-                if (event.key.code == Keyboard::Down)
-                    selected ++, selected %= 6;
-                if (event.key.code == Keyboard::Up)
-                    selected = (selected - 1) + 6 , selected%=6;
-                if (event.key.code == Keyboard::Escape)
-                {
-                    logo_transformation('b');
-                    menu_scene--; selected = -1;
-                    cout << menu_scene << endl;
-                }
-                if(event.key.code == Keyboard::Enter)
-                    if(menu_scene == 1)
-                    {
-                        if(selected == 0)
-                        {
-                            menu_scene = 2;
-                        }
-                        else if(selected == 1)
-                        {
-                            menu_scene = 3;
-                        }
-                        else if(selected == 2)
-                            menu_scene = 4;
-                        else if(selected == 3)
-                            menu_scene = 5;
-                        else if(selected == 4)
-                            menu_scene = 6;
-                        else if(selected == 5)
-                        {
-                            window.close();
-                        }
-                        selected = -1;
-                    }
-                    else if(menu_scene == 2)
-                    {
-                        if(selected == 0)
-                        {
-                            menu_scene = 2;
-                        }
-                        else if(selected == 1);
-                        
-                            //menu_scene = 3;
-                        
-                        else if(selected == 2);
-                            //menu_scene = 4;
-                        else if(selected == 3)
-                            menu_scene = 1;
-                    }
-            }
-            else if(menu_scene == 2)
-            {
-                if (event.key.code == Keyboard::Escape)
-                    menu_scene = 1;
-                if (event.key.code == Keyboard::Down)
-                    selected ++, selected %= 4;
-                if (event.key.code == Keyboard::Up)
-                    selected = (selected - 1) + 4 , selected%=4;
-            }
-            else if(menu_scene == 3)
-            {
-                if (event.key.code == Keyboard::Escape)
-                    menu_scene = 1;
-            }
-            else if(menu_scene == 4)
-            {
-                if (event.key.code == Keyboard::Escape)
-                    menu_scene = 1;
-            }
-            else if(menu_scene == 5)
-            {
-                if (event.key.code == Keyboard::Escape)
-                    menu_scene = 1;
-            }
-            else if((menu_scene == 6 || menu_scene == 11 || menu_scene == 12||menu_scene == 13 || menu_scene == 14) && help)
-            {
-                help->handle_movements(event, selected, menu_scene, window, settings);
-            }
-        }
-
-if (event.type == Event::MouseMoved)
-{
-    Vector2i mousePixel = Mouse::getPosition(window);
-    Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
-    switch(menu_scene)
-    {
-        case 1:
-            selected = -1;
-            for(int i = 0; i < 6; i++)
-            {
-                if(main_menu_buttons_sprite[i][0].getGlobalBounds().contains(mouse_position))
-                {
-                    selected = i;
-                    break;
-                }
-                else
-                    selected = -1;
-            }
-            break;
-        case 2:
-            for(int i = 0; i < 4; i++)
-            {
-                if(single_player_sprite[i][0].getGlobalBounds().contains(mouse_position))
-                {
-                    selected = i;
-                    break;
-                }
-                else
-                    selected = -1;
-            }
-            break;
-        case 6: case 11: case 12: case 13: case 14:
-            if(help)
-                help->handle_movements(event, selected, menu_scene, window, settings);
-            break;
-    }
-}
-
-        if (event.type == Event::MouseButtonPressed)
-        {
-
-            Click_sound(settings);
-            Vector2i mousePixel = Mouse::getPosition(window);
-            Vector2f mouse_position = window.mapPixelToCoords(mousePixel);
-
-            if(event.mouseButton.button == Mouse::Left)
-            {
-                if (menu_scene == 0)
-                {
-                    logo_transformation('f');
-                    menu_scene++;
-                }
-
-                if(menu_scene == 1)
-                {
-                    for(int i = 0; i <6; i++)
-                    {
-                        if(selected == 5)
-                            window.close();
-                        if(selected == i)
-                            menu_scene = i+2, selected = -1;
-                    }
-                }
-
-                else if(menu_scene == 2)
-                {
-                    for(int i = 0; i < 4; i++)
-                    {
-                        if(i == 3)
-                            menu_scene = 1, selected = -1;
-                        if(selected == i)
-                            menu_scene = i + 8, selected = -1; 
-                    }
-                }
-                else if((menu_scene == 6 || menu_scene == 11 || menu_scene == 12 ||menu_scene == 13 || menu_scene == 14) && help)
-                    help->handle_movements(event, selected, menu_scene, window, settings);
-            }
-        }
-    };
-
-    void update_menu_scenes(RenderWindow& window, GameSettings& settings)
-    {
-        if (main_theme_sound.getStatus() != Sound::Playing && settings.controls[1])
-            main_theme_sound.play();
-
-        if(!settings.controls[1])
-            main_theme_sound.stop();
-
-        switch(menu_scene)
-        {
-            case 0 : draw_starting_menu(window);break;
-            case 1 : draw_main_menu(window); break;
-            case 2 : draw_single_player_menu(window); break;
-            case 3 : draw_multiplayer_menu(window); break;
-            case 4 : draw_leaderboards_menu(window); break;
-            case 5 : draw_achievements_menu(window); break;
-            case 6 :
-                if (!help)
-                {
-                    help = new help_and_options();
-                    help->load_assets(Res, settings.game_font);
-                }
-                help->draw(window, selected, main_menu_background_sprite,menu_rocks_sprite);
-                break;
-            case 11 : help->draw_settings(window, selected, main_menu_background_sprite,menu_rocks_sprite, settings); break;
-            case 12 : help->draw_controls(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
-            case 13 : help->draw_how_to_play(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
-            case 14 : help->draw_credits(window, selected, main_menu_background_sprite,menu_rocks_sprite); break;
-        }
-    }
-
-    void draw_starting_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        //window.draw(refs);
-        window.draw(logo_sprite);
-        //window.draw(tube_sprite);
-        window.draw(menu_rocks_sprite);
-        window.draw(txts);
-        window.display();
-    }
-    
-    void draw_main_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(logo_sprite);
-        //window.draw(tube_sprite);
-        
-        for(int i =5; i>=0; i--)
-        {
-            window.draw(main_menu_buttons_sprite[i][selected == i ? 1 : 0]);
-        }
-        //window.draw(menu_text[0]);
-        window.draw(menu_rocks_sprite);
-        window.draw(tool_tip_sprite);
-        window.draw(the_sign_sprite);
-        window.display();
-    };
-    
-    void draw_single_player_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(logo_sprite);
-
-        for(int i = 0; i < 4; i++)
-        {
-            window.draw(single_player_sprite[i][selected == i ? 1 : 0]);
-            if(i > 2)
-                continue;
-            window.draw(quads_sprite[i]);
-        }
-
-        window.draw(menu_rocks_sprite);
-        window.draw(tool_tip_sprite);
-        window.display();
-    }
-
-    void draw_multiplayer_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(logo_sprite);
-        window.draw(menu_rocks_sprite);
-        window.display();
-    }
-
-    void draw_leaderboards_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(logo_sprite);
-        window.draw(menu_rocks_sprite);
-        window.display();
-    }
-
-    void draw_achievements_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(logo_sprite);
-        window.draw(menu_rocks_sprite);
-        window.display();
-    }
-
-    void draw_help_menu(RenderWindow& window)
-    {
-        window.clear();
-        window.draw(main_menu_background_sprite);
-        window.draw(logo_sprite);
-        window.draw(menu_rocks_sprite);
-        window.display();
-    }
+    void draw_help_menu();
 };
 
 const int MAX_STARS = 30;
@@ -1071,50 +337,41 @@ Preal preal;
 int main()
 {
     mainMenu* menu = nullptr;
-    GameSettings settings;
+    helpAndOptions* help = nullptr;
     RenderWindow window;
     window_mode(window, settings.controls[2], settings.res);
     Event event;
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 2; // 0 for start_mermaid menu, 1 -> mermaid animation, 2-> shark
+    short scene = 0; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
+    commonAssets assets;
+    gameSounds sounds;
+    assets.load();
+    sounds.load();
+    
     mermaid.start_mermaid();
     shark.start();
     while (window.isOpen())
     {
         float dt = clock.restart().asSeconds();
+
+
+
+
+
+
+
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed)
                 window.close();
-            if(menu)
-                menu->handle_movements(event, scene, window, settings);
-        }
-        switch (scene)
-        {
-        case 0:
-            if (!menu)
-            {
-                menu = new mainMenu();
-                menu->load_assets(settings.res, settings);
-            }
-            menu->update_menu_scenes(window, settings);
-            break;
-        case 1:
-            mermaid.update_mermaid(dt);
-            mermaid.draw_mermaid(window);
-            break;
-        case 2:
-            shark.update(dt);
-            shark.draw(window);
-            break;
-        }
-
-
-            while (window.pollEvent(event)) {
+            if(scene == 0 && menu)
+                menu->handle_movements(event, scene );
+            else if(scene == 1 && help)
+                help->handle_movements(event, scene);
             if (event.type == Event::Closed) {
                 window.close();
             }
@@ -1140,8 +397,52 @@ int main()
                         shark.eatTimer = 0;
                     }
                 }
-            }
+            
         }
+        }
+
+
+        switch (scene)
+        {
+        case 0:
+            if (!menu)
+            {
+                menu = new mainMenu();
+                //if(help)
+                    //menu-> menu_scene = 1;//, delete help, help = nullptr;
+                menu->assets = &assets;
+                menu->sound = &sounds;
+                menu->window = &window;
+                menu->load_assets(settings.res);
+            }
+            menu->update_menu_scenes();
+            break;
+        case 1:
+            if(!help)
+            {
+                help = new helpAndOptions();
+                //if(menu)
+                //    delete menu, menu = nullptr;
+                help->assets = &assets;
+                help->window = &window;
+                help->sound = &sounds;
+                help->load_assets(settings.res);
+            }
+            help->update_menu_scenes();
+            break;
+        case 2:
+            mermaid.update_mermaid(dt);
+            mermaid.draw_mermaid(window);
+            break;
+        case 3:
+            shark.update(dt);
+            shark.draw(window);
+            break;
+        }
+
+
+
+
     }
 
 
@@ -1558,6 +859,51 @@ int mouthintersect(fishes& a, fishes& b) {
 
 }
 
+// different structs
+void commonAssets::load()
+{
+    if (!game_font.loadFromFile("Fonts\\hint.ttf")) cout << "Menu font is not found" << endl;
+
+    if (!main_menu_background_text.loadFromFile("Sprites\\2\\Menu assets\\mainMenu.jpg")) cout << "main menu background is not found" << endl;
+    main_menu_background_sprite.setTexture(main_menu_background_text);
+    main_menu_background_sprite.setScale(settings.res.x/main_menu_background_text.getSize().x, settings.res.y/main_menu_background_text.getSize().y);
+
+    if (!menu_rocks_text.loadFromFile("Sprites\\2\\Menu assets\\rocks_g.png")) cout << "Rocks are not found" << endl;
+    menu_rocks_sprite.setTexture(menu_rocks_text);
+    menu_rocks_sprite.setScale((settings.res.x/menu_rocks_text.getSize().x), settings.res.y/menu_rocks_text.getSize().y);
+    menu_rocks_sprite.setPosition(settings.res.x * 0.0645, settings.res.y * 0.314f);
+}
+
+void gameSounds::Click_sound()
+{
+    if(settings.controls[0])
+        click_sound.setVolume(70);
+    else
+        click_sound.setVolume(0);
+    click_sound.play();
+}
+
+void gameSounds::load()
+{
+    if (!main_theme_buffer.loadFromFile("Sounds\\music\\menu_theme.wav")) cout << "tube's texture is not found" << endl;
+    main_theme_sound.setBuffer(main_theme_buffer);
+    main_theme_sound.setVolume(settings.music_volume);
+    main_theme_sound.setLoop(true);
+
+    if (!click_buffer.loadFromFile("Sounds\\sfx\\pop.mp3")) cout << "quad q1 is not found" << endl;
+    click_sound.setBuffer(click_buffer);
+}
+
+void gameSounds::play_sound()
+{
+if (main_theme_sound.getStatus() != Sound::Playing && settings.controls[1])
+    main_theme_sound.play();
+
+if(!settings.controls[1])
+    main_theme_sound.stop();
+}
+// Mermaid functions
+
 //MOVEMENT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void Mermaid::mermaidMovement(float speed)
 {
@@ -1665,6 +1011,7 @@ void Mermaid::draw_mermaid(RenderWindow& window)
     window.display();
 }
 
+// Shark functions
 void Shark::start()
 {
     if(!signalTexture.loadFromFile("Sprites\\unkown 2\\dangerSign.png")) cout << "danger sign is not found"<< endl;
@@ -1842,7 +1189,792 @@ void Shark::sharkAnimation(int frame, int row, int frameCountInEveryRow)
     shark.setOrigin(frameWidth / 2, frameHeight / 2);
 }
 
-void window_mode(RenderWindow& window, bool fullscreen, Vector2f res) {
+// Main menu functions
+void mainMenu::load_assets(Vector2f res )
+{
+    sound->play_sound();
+    Res = res;
+    Vector2f buttons_scale; // hehe
+
+    if (!rr.loadFromFile("Sprites\\menu\\ref.png")) cout << "rr's texture is not found" << endl;
+    rrs.setTexture(rr);
+    // Loading buttons!
+    if (!main_menu_buttons_texture[0][0].loadFromFile("Sprites\\menu\\single-player.png")) cout << "button 1's texture is not found" << endl;
+    if (!main_menu_buttons_texture[0][1].loadFromFile("Sprites\\menu\\single-player-glow.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!main_menu_buttons_texture[1][0].loadFromFile("Sprites\\menu\\multiplayer.png")) cout << "button 2's texture is not found" << endl;
+    if (!main_menu_buttons_texture[1][1].loadFromFile("Sprites\\menu\\multiplayer-glow.png")) cout << "glowing button 2 texture is not found" << endl;
+    if (!main_menu_buttons_texture[2][0].loadFromFile("Sprites\\menu\\leaderboards.png")) cout << "button 3's texture is not found" << endl;
+    if (!main_menu_buttons_texture[2][1].loadFromFile("Sprites\\menu\\leaderboards-glow.png")) cout << "glowing button 3 texture is not found" << endl;
+    if (!main_menu_buttons_texture[3][0].loadFromFile("Sprites\\menu\\achievements.png")) cout << "button 4's texture is not found" << endl;
+    if (!main_menu_buttons_texture[3][1].loadFromFile("Sprites\\menu\\achievements-glow.png")) cout << "glowing button 4 texture is not found" << endl;
+    if (!main_menu_buttons_texture[4][0].loadFromFile("Sprites\\menu\\help-and-options.png")) cout << "button 5's texture is not found" << endl;
+    if (!main_menu_buttons_texture[4][1].loadFromFile("Sprites\\menu\\help-and-options-glow.png")) cout << "glowing button 5 texture is not found" << endl;
+    if (!main_menu_buttons_texture[5][0].loadFromFile("Sprites\\menu\\quit.png")) cout << "button 6's texture is not found" << endl;
+    if (!main_menu_buttons_texture[5][1].loadFromFile("Sprites\\menu\\quit-glow.png")) cout << "glowing button 6 texture is not found" << endl;
+
+    if (!single_player_texture[0][0].loadFromFile("Sprites\\menu\\story-mode.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[0][1].loadFromFile("Sprites\\menu\\story-mode-glow.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[1][0].loadFromFile("Sprites\\menu\\story-title.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[1][1].loadFromFile("Sprites\\menu\\story-title-glow.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[2][0].loadFromFile("Sprites\\menu\\time-attack.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[2][1].loadFromFile("Sprites\\menu\\time-attack-glow.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[3][0].loadFromFile("Sprites\\menu\\back.png")) cout << "glowing button 1's texture is not found" << endl;
+    if (!single_player_texture[3][1].loadFromFile("Sprites\\menu\\back-glow.png")) cout << "glowing button 1's texture is not found" << endl;
+    
+for(int i = 0; i < 6; i++)
+{
+    for(int j = 0; j < 2; j++)
+    {
+        main_menu_buttons_sprite[i][j].setTexture(main_menu_buttons_texture[i][j]);
+        main_menu_buttons_sprite[i][j].setOrigin(main_menu_buttons_sprite[i][j].getGlobalBounds().width/2,main_menu_buttons_sprite[i][j].getGlobalBounds().height/2);
+
+        if(!j)
+            main_menu_buttons_sprite[i][j].setScale(0.24f, 0.24f);
+        else
+            main_menu_buttons_sprite[i][j].setScale(0.255f, 0.255f);
+
+        switch(i)
+        {
+            case 0:
+                main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.12f);
+                if(j){ main_menu_buttons_sprite[i][j].setScale(0.3f, 0.3f); break;}
+                main_menu_buttons_sprite[i][j].setScale(0.285f, 0.285f);
+                break;
+            case 1:
+                main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.25f);
+                main_menu_buttons_sprite[i][j].setRotation(-1.3f);
+                if(j) {main_menu_buttons_sprite[i][j].setScale(0.28f, 0.28f); break;}
+                main_menu_buttons_sprite[i][j].setScale(0.265f,0.265f);
+                break;
+            case 2:
+                main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.36f);
+                break;
+            case 3:
+                main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.46f);
+                if(j) {main_menu_buttons_sprite[i][j].setScale(0.26f, 0.26f); break;}
+                main_menu_buttons_sprite[i][j].setScale(0.48f,0.48f);
+                break;
+            case 4:
+                main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7f, res.y * 0.565f);
+                main_menu_buttons_sprite[i][j].setRotation(-1.05f);
+                break;
+            case 5:
+                main_menu_buttons_sprite[i][j].setPosition(res.x * 0.7, res.y * 0.66f);
+                main_menu_buttons_sprite[i][j].setRotation(-1.45f);
+                if(j) {main_menu_buttons_sprite[i][j].setScale(0.19f, 0.19f); break;}
+                main_menu_buttons_sprite[i][j].setScale(0.18f,0.18f);
+                break;
+        }
+    }
+}
+
+    for(int i = 0; i < 4; i++)
+    {
+        for(int j =0; j < 2; j++)
+        {
+            single_player_sprite[i][j].setTexture(single_player_texture[i][j]);
+            buttons_scale= {(res.x * 0.25f) / single_player_texture[i][j].getSize().x,(res.y * 0.115f) / single_player_texture[i][j].getSize().y};
+            single_player_sprite[i][j].setScale(buttons_scale.x, buttons_scale.y);
+            if(i == 0)
+            {
+                single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.262f);
+                single_player_sprite[i][j].rotate(1.8);
+            }
+            else if (i == 1)
+            {
+                single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.386f);
+                single_player_sprite[i][j].rotate(-1.3);
+            }
+            else if (i == 2)
+            {
+                single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.486f);
+                single_player_sprite[i][j].rotate(1.3);
+            }
+            else
+            {
+                single_player_sprite[i][j].setPosition(res.x * 0.56501f, res.y * 0.596f);
+                single_player_sprite[i][j].rotate(1.3);
+            }
+        }
+    }
+
+    // al original menu "for refrence"
+    ment.loadFromFile("men.jpg");
+    mens.setScale(res.x/ment.getSize().x, res.y/ment.getSize().y);
+    mens.setTexture(ment);
+    
+    if (!tool_tip_texture.loadFromFile("Sprites\\2\\Menu assets\\tooltip.png")) cout << "tooltip's texture is not found" << endl;
+    tool_tip_sprite.setTexture(tool_tip_texture);
+    tool_tip_sprite.setOrigin(tool_tip_sprite.getGlobalBounds().width / 2, 0);
+    tool_tip_sprite.setPosition(res.x / 2, res.y * 0.735f);
+    tool_tip_sprite.setScale((res.x * 0.5f) / tool_tip_texture.getSize().x, (res.y * 0.19f) / tool_tip_texture.getSize().y);
+    // hehe
+    if (!logo_texture.loadFromFile("Sprites\\2\\Menu assets\\logo.png")) cout << "logo's texture is not found" << endl;
+    logo_sprite.setTexture(logo_texture);
+    logo_sprite.setScale((res.x * 0.396f) / logo_texture.getSize().x, (res.y * 0.39f) / logo_texture.getSize().y);
+    logo_sprite.setPosition(res.x * 0.296f, res.y * 0.033f);
+    
+    if (!tube_texture.loadFromFile("Sprites\\2\\Menu assets\\tubes_01.png")) cout << "tube's texture is not found" << endl;
+    tube_sprite.setTexture(tube_texture);
+    tube_sprite.setOrigin(tube_texture.getSize().x / 2,tube_texture.getSize().y);
+    tube_sprite.setScale((res.x * 0.135f) / tube_texture.getSize().x, (res.y * 0.315f) / tube_texture.getSize().y);
+    tube_sprite.setPosition(res.x * 0.715f, res.y * 1.f);
+    
+    if (!txt.loadFromFile("Fonts\\press_any_button.png")) cout << "button is not found" << endl;
+    txts.setTexture(txt);
+    txts.setScale(res.x/txt.getSize().x, res.y/txt.getSize().y);
+    //txts.setOrigin(txt.getSize().x / 2,txt.getSize().y);
+    //txts.setPosition(res.x , res.y );
+    //txts.setScale(res.x / txt.getSize().x, res.y / txt.getSize().y);
+    
+    if (!menu_font.loadFromFile("Fonts\\hint.ttf")) cout << "Menu font is not found" << endl;
+    for (int i = 0; i < 1; i++)
+    {
+        menu_text[i].setString(menu_strings[i]);
+        menu_text[i].setCharacterSize(50);
+        menu_text[i].setFillColor(Color::White);
+        menu_text[i].setOutlineColor(Color::Black);
+        menu_text[i].setOutlineThickness(2);
+        FloatRect textBounds = menu_text[i].getLocalBounds();
+        menu_text[i].setOrigin(textBounds.left + textBounds.width / 2.f,
+        textBounds.top  + textBounds.height / 2.f);
+        FloatRect tipBounds = tool_tip_sprite.getGlobalBounds();
+        menu_text[i].setPosition(tipBounds.left + tipBounds.width  / 2.f,
+        tipBounds.top  + tipBounds.height / 2.f);
+        menu_text[i].setFont(menu_font);
+        
+    }
+    
+    // click to start refrence "hab2a ashelha ba3deen"
+    if (!reft.loadFromFile("ref1.png")) cout << "ref's texture is not found" << endl;
+    refs.setTexture(reft);
+    refs.setScale(res.x/reft.getSize().x, res.y/reft.getSize().y);
+    
+    if (!the_sign_texture.loadFromFile("Sprites\\menu\\sprite_clean.png")) cout << "quad back is not found" << endl;
+    the_sign_sprite.setTexture(the_sign_texture);
+    the_sign_sprite.setPosition(res.x * 0.355, res.y * 0.785f);
+    the_sign_sprite.setScale((res.x * 0.3f) / the_sign_texture.getSize().x, (res.y * 0.1f) / the_sign_texture.getSize().y);
+
+
+    if (!quads_texture[0].loadFromFile("Sprites\\menu\\quad_back.png")) cout << "quad back is not found" << endl;
+    if (!quads_texture[1].loadFromFile("Sprites\\menu\\quad_ring.png")) cout << "quad ring is not found" << endl;
+    if (!quads_texture[2].loadFromFile("Sprites\\menu\\quad_q2.png")) cout << "quad q2 is not found" << endl;
+    if (!quads_texture[3].loadFromFile("Sprites\\menu\\quad_q3.png")) cout << "quad q3 is not found" << endl;
+    if (!quads_texture[4].loadFromFile("Sprites\\menu\\quad_q4.png")) cout << "quad q4 is not found" << endl;
+    if (!quads_texture[5].loadFromFile("Sprites\\menu\\quad_q1.png")) cout << "quad q1 is not found" << endl;
+    
+    for(int i = 0; i < 6; i++)
+    {
+        quads_sprite[i].setTexture(quads_texture[i]);
+        quads_sprite[i].setOrigin(quads_sprite[i].getGlobalBounds().width/2, quads_sprite[i].getGlobalBounds().height/2);
+        quads_sprite[i].setPosition(res.x * 0.69201f, res.y * 0.165f);
+        buttons_scale= {(res.x * 0.171f) / quads_texture[i].getSize().x,(res.y * 0.28f) / quads_texture[i].getSize().y};
+        quads_sprite[i].setScale(buttons_scale.x, buttons_scale.y);
+    }
+};
+
+void mainMenu::handle_movements(Event& event, short &scene )
+{
+    if (event.type == Event::KeyPressed)
+    {
+        sound->Click_sound();
+        if(menu_scene == 0 && event.key.code != Keyboard::Escape)
+            menu_scene++;
+
+        else if(menu_scene == 1)
+        {
+            if (event.key.code == Keyboard::Down)
+                selected ++, selected %= 6;
+            if (event.key.code == Keyboard::Up)
+                selected = (selected - 1) + 6 , selected%=6;
+            if (event.key.code == Keyboard::Escape)
+            {
+                menu_scene--; selected = -1;
+                cout << menu_scene << endl;
+            }
+            if(event.key.code == Keyboard::Enter)
+                if(menu_scene == 1)
+                {
+                    if(selected == 0)
+                    {
+                        menu_scene = 2;
+                    }
+                    else if(selected == 1)
+                    {
+                        menu_scene = 3;
+                    }
+                    else if(selected == 2)
+                        menu_scene = 4;
+                    else if(selected == 3)
+                        menu_scene = 5;
+                    else if(selected == 4)
+                    {
+                        scene = 1;
+                        return;
+                    }
+                    else if(selected == 5)
+                    {
+                        window->close();
+                    }
+                    selected = -1;
+                }
+                else if(menu_scene == 2)
+                {
+                    if(selected == 0)
+                    {
+                        menu_scene = 2;
+                    }
+                    else if(selected == 1);
+                    
+                        //menu_scene = 3;
+                    
+                    else if(selected == 2);
+                        //menu_scene = 4;
+                    else if(selected == 3)
+                        menu_scene = 1;
+                }
+        }
+        else if(menu_scene == 2)
+        {
+            if (event.key.code == Keyboard::Escape)
+                menu_scene = 1;
+            if (event.key.code == Keyboard::Down)
+                selected ++, selected %= 4;
+            if (event.key.code == Keyboard::Up)
+                selected = (selected - 1) + 4 , selected%=4;
+        }
+        else if(menu_scene == 3)
+        {
+            if (event.key.code == Keyboard::Escape)
+                menu_scene = 1;
+        }
+        else if(menu_scene == 4)
+        {
+            if (event.key.code == Keyboard::Escape)
+                menu_scene = 1;
+        }
+        else if(menu_scene == 5)
+        {
+            if (event.key.code == Keyboard::Escape)
+                menu_scene = 1;
+        }
+
+    }
+
+if (event.type == Event::MouseMoved)
+{
+Vector2i mousePixel = Mouse::getPosition(*window);
+Vector2f mouse_position = window->mapPixelToCoords(mousePixel);
+switch(menu_scene)
+{
+    case 1:
+        selected = -1;
+        for(int i = 0; i < 6; i++)
+        {
+            if(main_menu_buttons_sprite[i][0].getGlobalBounds().contains(mouse_position))
+            {
+                selected = i;
+                break;
+            }
+            else
+                selected = -1;
+        }
+        break;
+    case 2:
+        for(int i = 0; i < 4; i++)
+        {
+            if(single_player_sprite[i][0].getGlobalBounds().contains(mouse_position))
+            {
+                selected = i;
+                break;
+            }
+            else
+                selected = -1;
+        }
+        break;
+}
+}
+
+    if (event.type == Event::MouseButtonPressed)
+    {
+
+        sound->Click_sound();
+        Vector2i mousePixel = Mouse::getPosition(*window);
+        Vector2f mouse_position = window->mapPixelToCoords(mousePixel);
+
+        if(event.mouseButton.button == Mouse::Left)
+        {
+            if (menu_scene == 0)
+                menu_scene++;
+
+
+            if(menu_scene == 1)
+            {
+                for(int i = 0; i <6; i++)
+                {
+                    if(selected == 5)
+                        window->close();
+                    if(selected == 4)
+                    {
+                        scene = 1; return;
+                    }
+                    if(selected == i)
+                    {
+                        menu_scene = i+2, selected = -1; break;
+                    }
+                }
+            }
+
+            else if(menu_scene == 2)
+            {
+                for(int i = 0; i < 4; i++)
+                {
+                    if(i == 3)
+                        menu_scene = 1, selected = -1;
+                    else if(selected == i)
+                        menu_scene = i + 8, selected = -1; 
+                }
+            }
+        }
+    }
+};
+
+void mainMenu::logo_transformation(char a)
+{
+    if (a == 'f')
+    {
+    logo_sprite.setScale((Res.x * 0.365f) / logo_texture.getSize().x, (Res.y * 0.37f) / logo_texture.getSize().y);
+    logo_sprite.setPosition(Res.x * 0.1665f, Res.y * 0.05f);
+    }
+    else
+    {
+        logo_sprite.setScale((Res.x * 0.396f) / logo_texture.getSize().x, (Res.y * 0.39f) / logo_texture.getSize().y);
+        logo_sprite.setPosition(Res.x * 0.296f, Res.y * 0.033f);
+    }
+};
+
+void mainMenu::update_menu_scenes()
+{
+    // new func
+
+
+    switch(menu_scene)
+    {
+        case 0 : logo_transformation('b'); draw_starting_menu();break;
+        case 1 : logo_transformation('f'); draw_main_menu(); break;
+        case 2 : draw_single_player_menu(); break;
+        case 3 : draw_multiplayer_menu(); break;
+        case 4 : draw_leaderboards_menu(); break;
+        case 5 : draw_achievements_menu(); break;
+    }
+}
+
+void mainMenu::draw_basics()
+{
+    window->clear();
+    window->draw(assets->main_menu_background_sprite);
+    window->draw(logo_sprite);
+}
+
+void mainMenu::draw_starting_menu()
+{
+    draw_basics();
+    //window.draw(tube_sprite);
+    window->draw(assets->menu_rocks_sprite);
+    window->draw(txts);
+    window->display();
+}
+
+void mainMenu::draw_main_menu()
+{
+    draw_basics();
+
+    for(int i =5; i>=0; i--)
+    {
+        window->draw(main_menu_buttons_sprite[i][selected == i ? 1 : 0]);
+    }
+    //window.draw(menu_text[0]);
+    window->draw(assets->menu_rocks_sprite);
+    window->draw(tool_tip_sprite);
+    window->draw(the_sign_sprite);
+    window->display();
+};
+
+void mainMenu::draw_single_player_menu()
+{
+    draw_basics();
+
+    for(int i = 0; i < 4; i++)
+    {
+        window->draw(single_player_sprite[i][selected == i ? 1 : 0]);
+        if(i > 2)
+            continue;
+        window->draw(quads_sprite[i]);
+    }
+
+    window->draw(assets->menu_rocks_sprite);
+    window->draw(tool_tip_sprite);
+    window->display();
+}
+
+void mainMenu::draw_multiplayer_menu()
+{
+    draw_basics();
+    window->draw(assets->menu_rocks_sprite);
+    window->display();
+}
+
+void mainMenu::draw_leaderboards_menu()
+{
+    draw_basics();
+    window->draw(assets->menu_rocks_sprite);
+    window->display();
+}
+
+void mainMenu::draw_achievements_menu()
+{
+    draw_basics();
+    window->draw(assets->menu_rocks_sprite);
+    window->display();
+}
+
+void mainMenu::draw_help_menu()
+{
+    draw_basics();
+    window->draw(assets->menu_rocks_sprite);
+    window->display();
+}
+
+//  help And Options
+void helpAndOptions::load_assets(Vector2f res)
+{
+    reft.loadFromFile("Sprites\\menu\\2.png");
+    refs.setTexture(reft);
+    for(int i =0; i< 4; i++)
+        buttons[i].load_buttons();
+    
+    if(!mouse_texture.loadFromFile("Sprites\\menu\\mouse.png")) cout << "mouse texture is not found" << endl;
+    
+    if(!Rarrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small.png")) cout << "right arrow texture is not found" << endl;
+    if(!Rarrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_glow.png")) cout << "glowing right arrow texture is not found" << endl;
+    if(!Larrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small_left.png")) cout << "left arrow texture is not found" << endl;
+    if(!Larrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_left_glow.png")) cout << "glowing left arrow texture is not found" << endl;
+    
+    if(!menu_shell_texture[0].loadFromFile("Sprites\\menu\\shell_stageBack.png")) cout << "main shell's not found" << endl;
+    if(!menu_shell_texture[1].loadFromFile("Sprites\\menu\\help-and-options-shell1.png")) cout << "help-and-optionsshell's not found" << endl;
+    if(!menu_shell_texture[2].loadFromFile("Sprites\\menu\\settings-shell.png")) cout << "settings shell is not found" << endl;
+    if(!menu_shell_texture[3].loadFromFile("Sprites\\menu\\controls-shell.png")) cout << "controls shell is not found" << endl;
+    if(!menu_shell_texture[4].loadFromFile("Sprites\\menu\\how-to-play-shell.png")) cout << "controls shell is not found" << endl;
+    
+    if(!buttons_texture[0][0].loadFromFile("Sprites\\menu\\controls.png")) cout << "not found" << endl;
+    if(!buttons_texture[0][1].loadFromFile("Sprites\\menu\\controls-glow.png")) cout << "not found" << endl;
+    if(!buttons_texture[1][0].loadFromFile("Sprites\\menu\\how-to-play.png")) cout << "not found" << endl;
+    if(!buttons_texture[1][1].loadFromFile("Sprites\\menu\\how-to-play-glow.png")) cout << "not found" << endl;
+    if(!buttons_texture[2][0].loadFromFile("Sprites\\menu\\settings.png")) cout << "not found" << endl;
+    if(!buttons_texture[2][1].loadFromFile("Sprites\\menu\\settings-glow.png")) cout << "not found" << endl;
+    if(!buttons_texture[3][0].loadFromFile("Sprites\\menu\\credits.png")) cout << "not found" << endl;
+    if(!buttons_texture[3][1].loadFromFile("Sprites\\menu\\credits-glow.png")) cout << "not found" << endl;
+    if(!buttons_texture[4][0].loadFromFile("Sprites\\menu\\done.png")) cout << "not found" << endl;
+    if(!buttons_texture[4][1].loadFromFile("Sprites\\menu\\done-glow.png")) cout << "not found" << endl;
+    if(!buttons_texture[5][0].loadFromFile("Sprites\\menu\\lil-done.png")) cout << "not found" << endl;
+    if(!buttons_texture[5][1].loadFromFile("Sprites\\menu\\lil-done-glow.png")) cout << "not found" << endl;
+
+    for(int i = 0; i < 6; i++)
+    {
+        for(int j =0; j < 2; j++)
+        {
+        buttons_sprite[i][j].setTexture(buttons_texture[i][j]);
+        buttons_sprite[i][j].setOrigin(buttons_sprite[i][j].getGlobalBounds().width/2,buttons_sprite[i][j].getGlobalBounds().height/2);
+        if(!j)
+            buttons_sprite[i][j].setScale(0.245f, 0.245f);
+        else
+            buttons_sprite[i][j].setScale(0.255f, 0.255f);
+
+        switch (i)
+        {
+            case 0: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.265f); break;
+            case 1: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.38f); break;
+            case 2: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.495f); break;
+            case 3: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.61f); break;
+            case 4: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.79f); break;
+            case 5: buttons_sprite[i][j].setPosition(res.x /2.f, res.y * 0.79f);
+                if(!j)
+                    buttons_sprite[i][j].setScale(0.2,0.2);
+                else
+                    buttons_sprite[i][j].setScale(0.22,0.22);
+            break;
+        }
+
+        if(i == 1 || i == 2)
+        {
+            if(!j)
+                buttons_sprite[i][j].setScale(0.245, 0.238);
+            else
+                buttons_sprite[i][j].setScale(0.255, 0.239);
+        }
+        }
+    }
+
+    for(int i =0; i < 5;i++)
+    {
+        menu_shell_sprite[i].setTexture(menu_shell_texture[i]);
+        menu_shell_sprite[i].setOrigin(menu_shell_sprite[i].getGlobalBounds().width/2, menu_shell_sprite[i].getGlobalBounds().height/2);
+        menu_shell_sprite[i].setPosition(res.x /2, res.y * 0.51f);
+        menu_shell_sprite[i].setScale(1.76,1.75);
+    }
+
+    mouse_sprite.setTexture(mouse_texture);
+    mouse_sprite.setOrigin(mouse_sprite.getGlobalBounds().width/2, mouse_sprite.getGlobalBounds().height/2);
+    mouse_sprite.setPosition(res.x * 0.43f, res.y * 0.5f);
+    mouse_sprite.setScale(0.9f,0.9f);
+
+    for(int i =0; i < 4; i++)
+    {
+        settings_text[i].setString(settings_string[i]);
+        settings_text[i].setFont(assets->game_font);
+        settings_text[i].setFillColor(Color::White);
+        settings_text[i].setOutlineColor(Color::Black);
+        settings_text[i].setCharacterSize(48);
+        settings_text[i].setOutlineThickness(2);
+        FloatRect bounds = settings_text[i].getLocalBounds();
+        settings_text[i].setOrigin(bounds.left + bounds.width, bounds.top);
+        
+        settings_text[i].setPosition(0.477f * res.x, 0.272f * res.y + i * 100);
+    }
+    
+    for(int i =0; i < 2; i++)
+    {
+        how_to_play_text[i].setString(how_to_play_string[i]);
+        how_to_play_text[i].setFont(assets->game_font);
+        how_to_play_text[i].setFillColor(Color::White);
+        how_to_play_text[i].setOutlineColor(Color::Black);
+        how_to_play_text[i].setCharacterSize(34);
+        how_to_play_text[i].setOutlineThickness(2);
+        how_to_play_text[i].setOrigin(how_to_play_text[i].getGlobalBounds().width/2,how_to_play_text[i].getGlobalBounds().height/2);
+    }
+
+    how_to_play_text[0].setPosition((0.44f) * res.x,(0.335f) * res.y);
+    how_to_play_text[1].setPosition((0.435f) * res.x,(0.585) * res.y);
+
+    for(int i =0; i<4; i++)
+        for(int j =0; j < 2;j++)
+            for(int h =0; h < 2; h++)
+                buttons[i].checkbox_sprite[j][h].setPosition(0.495f * res.x, 0.295f * res.y + i * 100);
+
+
+    
+    sound_volume.setPosition(0.495f * res.x, 0.272f * res.y);
+    sound_volume.setFont(assets->game_font);
+    sound_volume.setFillColor(Color::White);
+    sound_volume.setOutlineColor(Color::Black);
+    sound_volume.setCharacterSize(48);
+    sound_volume.setOutlineThickness(2);
+
+}
+
+void helpAndOptions::handle_movements(Event& event, short &scene )
+{
+
+    if (event.type == Event::KeyPressed)
+    {
+        sound->Click_sound();
+        if(options_scene == 0)
+        {
+            if (event.key.code == Keyboard::Escape)
+                scene = 0;
+            if (event.key.code == Keyboard::Down)
+                selected++, selected %= 5;
+            if (event.key.code == Keyboard::Up)
+                selected = (selected - 1) + 5, selected %= 5;
+        }
+        else if(options_scene == 3)
+        {
+            if (event.key.code == Keyboard::Escape)
+                options_scene = 0;
+        }
+    }
+
+    if (event.type == Event::MouseMoved)
+    {
+
+        Vector2i mousePixel = Mouse::getPosition(*window);
+        Vector2f mouse_position = window->mapPixelToCoords(mousePixel);
+
+        if(options_scene == 0)
+        {
+            for(int i =0; i < 5; i++)
+            {
+                if(buttons_sprite[i][0].getGlobalBounds().contains(mouse_position))
+                {
+                    selected = i;
+                    break;
+                }
+                else
+                selected = -1;
+            }
+        }
+
+        else if (options_scene == 2)
+        {
+            for(int i = 0; i < 4; i++)
+            {
+                if(buttons_sprite[5][0].getGlobalBounds().contains(mouse_position))
+                {
+                    selected = 0;
+                    break;
+                }
+                if(buttons[i].checkbox_sprite[0][0].getGlobalBounds().contains(mouse_position))
+                {
+                    selected = i + 1;
+                    break;
+                }
+                else 
+                    selected = -1;
+            }
+
+        }
+            else if(options_scene == 1 || options_scene == 3 || options_scene == 4)
+            {
+                selected = buttons_sprite[4][0].getGlobalBounds().contains(mouse_position) ? 0 : -1;
+            }
+    }
+
+    if (event.type == Event::MouseButtonPressed)
+    {
+        sound->Click_sound();
+        Vector2i mousePixel = Mouse::getPosition(*window);
+        Vector2f mouse_position = window->mapPixelToCoords(mousePixel);
+        if(event.mouseButton.button == Mouse::Left)
+        {
+            if(options_scene == 0)
+            {
+                if(selected == 0)
+                    options_scene = 1, selected = -1;
+                else if(selected == 1)
+                    options_scene = 3;
+                else if(selected == 2)
+                    options_scene = 2, selected = -1;
+                else if(selected == 3)
+                    options_scene = 4, selected = -1;
+                else if(selected == 4)
+                    scene = 0, selected = -1;
+            }
+            else if(options_scene == 2)
+            {
+                if(selected == 0)
+                    options_scene = 0, selected = -1;
+                else if(selected == 1)
+                    settings.controls[0] = !settings.controls[0];
+                else if(selected == 2)
+                    settings.controls[1] = !settings.controls[1];
+                else if(selected == 3)
+                    settings.controls[2] = !settings.controls[2], window_mode(*window, settings.controls[2], settings.res);
+            }
+            else if(options_scene == 1 || options_scene == 3 || options_scene == 4)
+            {
+                if(selected == 0) options_scene = 0, selected = -1;
+            }
+        }
+    }
+}
+
+void helpAndOptions::update_menu_scenes()
+{
+    switch(options_scene)
+    {
+        case 0 : draw(); break;
+        case 1 : draw_controls(); break;
+        case 2 : draw_settings(); break;
+        case 3 : draw_how_to_play(); break;
+        case 4 : draw_credits(); break;
+    }
+}
+
+void helpAndOptions::draw_basics()
+{
+    window->clear();
+    window->draw(assets->main_menu_background_sprite);
+    window->draw(assets->menu_rocks_sprite);
+}
+
+void helpAndOptions::draw()
+{
+    draw_basics();
+    //window->draw(refs);
+    for(int i = 0; i < 2; i++)
+        window->draw(menu_shell_sprite[i]);
+    for(int i = 0; i < 5; i++)
+        window->draw(buttons_sprite[i][selected == i ? 1 : 0]);
+    window->display();
+}
+
+void helpAndOptions::update_settings()
+{
+    sound_volume.setString(to_string(settings.sound_volume));
+    music_volume.setString(to_string(settings.music_volume));
+    FloatRect bounds = sound_volume.getLocalBounds();
+    sound_volume.setOrigin(bounds.left + bounds.width, bounds.top);
+    sound->play_sound();
+}
+
+void helpAndOptions::draw_settings()
+{
+    update_settings();
+    draw_basics();
+    //window->draw(refs);
+    for(int i = 0; i < 3; i=i+2)
+        window->draw(menu_shell_sprite[i]);
+    
+    for(int i =0; i < 4; i++)
+    {
+        window->draw(settings_text[i]);
+    }
+    for(int i = 0; i < 4; i++)
+        window->draw(buttons[i].checkbox_sprite[settings.controls[i] ? 1 : 0][selected == (i + 1) ? 1 : 0]);
+    //window->draw(sound_volume);
+    window->draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
+    window->display();
+}
+
+void helpAndOptions::draw_controls()
+{
+    draw_basics();
+
+    for(int i = 0; i < 4; i=i+3)
+    {
+        window->draw(menu_shell_sprite[i]);
+        if(i == 3)
+            continue;
+        window->draw(mouse_sprite);
+    }
+
+    window->draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
+    window->display();
+}
+
+void helpAndOptions::draw_how_to_play()
+{
+    draw_basics();
+    //window->draw(refs);
+    for(int i = 0; i < 5; i=i+4)
+        window->draw(menu_shell_sprite[i]);
+    for(int i =0; i < 2; i++)
+        window->draw(how_to_play_text[i]);
+    window->draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
+    window->display();
+}
+
+void helpAndOptions::draw_credits()
+{
+    draw_basics();
+    //window->draw(refs);
+    for(int i = 0; i < 3; i=i+2)
+        window->draw(menu_shell_sprite[i]);
+    window->draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
+    window->display();
+}
+
+void window_mode(RenderWindow &window, bool fullscreen, Vector2f res) {
     if (fullscreen)
         window.create(VideoMode(res.x, res.y), "Feeding Frenzy 2 - Shipwrech Showdown", Style::Fullscreen);
     else
