@@ -220,7 +220,7 @@ struct pauseMenu
     RenderWindow* window = nullptr;
 
     short selectedOption = 0;
-    bool pause = false;
+    bool pause = true;
 
     void load()
     {
@@ -554,9 +554,6 @@ int main()
                 help->handle_movements(event, scene);
             else
                 men.eventHandler(event);
-            if (event.type == Event::Closed) {
-                window.close();
-            }
 
             if (event.type == Event::KeyPressed)
             {
@@ -624,6 +621,7 @@ int main()
             window.clear();
             men.draw();
             window.display();
+            break;
         }
 
 
@@ -2249,7 +2247,7 @@ void helpAndOptions::draw_settings()
     {
         window->draw(settings_text[i]);
     }
-    for(int i = 0; i < 4; i++)
+    for(int i = 0; i < 3; i++)
         window->draw(buttons[i].checkbox_sprite[settings.controls[i] ? 1 : 0][selected == (i + 1) ? 1 : 0]);
     //window->draw(sound_volume);
     window->draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
