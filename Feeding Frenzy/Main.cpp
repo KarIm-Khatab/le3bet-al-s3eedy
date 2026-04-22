@@ -327,7 +327,7 @@ struct helpAndOptions {
     };
 
     RenderWindow* window = nullptr;
-    menuButtons buttons[4];
+    menuButtons buttons[7];
     Texture buttons_texture[6][2], menu_shell_texture[6],Rarrow_texture[1][2], Larrow_texture[1][2], mouse_texture, reft;
     Sprite buttons_sprite[6][2],menu_shell_sprite[6],Rarrow_sprite[1][2], Larrow_sprite[1][2],mouse_sprite, refs;
     string settings_string[4] = {"Sound:", "Music:", "Full Screen:", "Mouse Speed:"}, 
@@ -496,13 +496,13 @@ int main()
     helpAndOptions* help = nullptr;
     RenderWindow window;
     pauseMenu* pause = nullptr;
-    //men.load();
+    //pause->load();
     window_mode(window, settings.controls[2]);
     Event event;
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 2; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
+    short scene = 0; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
     commonAssets assets;
@@ -753,7 +753,6 @@ void setback(Sprite& sp, Texture& t) { // to make background suit with window
         900.f / t.getSize().y
     );
 }
-
 
 // int start() {
 
@@ -1935,7 +1934,7 @@ void helpAndOptions::load_assets()
 {
     reft.loadFromFile("Sprites\\menu\\2.png");
     refs.setTexture(reft);
-    for(int i =0; i< 4; i++)
+    for(int i =0; i< 7; i++)
         buttons[i].load_buttons();
     
     if(!mouse_texture.loadFromFile("Sprites\\menu\\mouse.png")) cout << "mouse texture is not found" << endl;
@@ -2041,10 +2040,15 @@ void helpAndOptions::load_assets()
     how_to_play_text[0].setPosition((0.44f) * settings.res.x,(0.335f) * settings.res.y);
     how_to_play_text[1].setPosition((0.435f) * settings.res.x,(0.585) * settings.res.y);
 
-    for(int i =0; i<4; i++)
+    for(int i =0; i<7; i++)
         for(int j =0; j < 2;j++)
             for(int h =0; h < 2; h++)
-                buttons[i].checkbox_sprite[j][h].setPosition(0.495f * settings.res.x, 0.295f * settings.res.y + i * 100);
+            {
+                if(i <= 3)
+                    buttons[i].checkbox_sprite[j][h].setPosition(0.495f * settings.res.x, 0.295f * settings.res.y + i * 100);
+                else
+                    buttons[i].checkbox_sprite[j][h].setPosition(0.495f * settings.res.x + (i - 3) * 60, 0.295f * settings.res.y + 3 * 100);
+    }
 
 
     
@@ -2101,7 +2105,7 @@ void helpAndOptions::handle_movements(Event& event, short &scene )
 
         else if (options_scene == 2)
         {
-            for(int i = 0; i < 4; i++)
+            for(int i = 0; i < 7; i++)
             {
                 if(buttons_sprite[5][0].getGlobalBounds().contains(mouse_position))
                 {
@@ -2154,6 +2158,11 @@ void helpAndOptions::handle_movements(Event& event, short &scene )
                     settings.controls[1] = !settings.controls[1];
                 else if(selected == 3)
                     settings.controls[2] = !settings.controls[2], window_mode(*window, settings.controls[2]);
+                // else if(selected == 4)
+                    
+                // else if(selected == 5)
+                
+                // else
             }
             else if(options_scene == 1 || options_scene == 3 || options_scene == 4)
             {
@@ -2214,7 +2223,7 @@ void helpAndOptions::draw_settings()
     {
         window->draw(settings_text[i]);
     }
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < 6; i++)
         window->draw(buttons[i].checkbox_sprite[settings.controls[i] ? 1 : 0][selected == (i + 1) ? 1 : 0]);
     //window->draw(sound_volume);
     window->draw(buttons_sprite[5][selected == 0 ? 1 : 0]);
