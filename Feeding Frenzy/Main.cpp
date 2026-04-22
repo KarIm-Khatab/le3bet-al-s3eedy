@@ -1727,22 +1727,11 @@ void mainMenu::handle_movements(Event& event, short &scene )
             if (event.key.code == Keyboard::Up)
                 selected = (selected - 1) + 4 , selected%=4;
         }
-        else if(menu_scene == 3)
+        else if(menu_scene == 3 || menu_scene == 5 || menu_scene == 4)
         {
             if (event.key.code == Keyboard::Escape)
                 menu_scene = 1;
         }
-        else if(menu_scene == 4)
-        {
-            if (event.key.code == Keyboard::Escape)
-                menu_scene = 1;
-        }
-        else if(menu_scene == 5)
-        {
-            if (event.key.code == Keyboard::Escape)
-                menu_scene = 1;
-        }
-
     }
 
 if (event.type == Event::MouseMoved)
@@ -2075,11 +2064,27 @@ void helpAndOptions::handle_movements(Event& event, short &scene )
                 selected++, selected %= 5;
             if (event.key.code == Keyboard::Up)
                 selected = (selected - 1) + 5, selected %= 5;
+            if(event.key.code == Keyboard::Enter)
+            {
+                if(selected == 0)
+                    options_scene = 1, selected = -1;
+                else if(selected == 1)
+                    options_scene = 3;
+                else if(selected == 2)
+                    options_scene = 2, selected = -1;
+                else if(selected == 3)
+                    options_scene = 4, selected = -1;
+                else if(selected == 4)
+                    scene = 0, selected = -1;
+            }
         }
-        else if(options_scene == 3)
+
+        else
         {
-            if (event.key.code == Keyboard::Escape)
-                options_scene = 0;
+            if (event.key.code == Keyboard::Escape || (event.key.code == Keyboard::Enter && selected == 0) )
+                options_scene = 0, selected = -1;
+            if (event.key.code == Keyboard::Up || event.key.code == Keyboard::Down)
+                selected = 0;
         }
     }
 
