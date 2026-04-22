@@ -16,8 +16,10 @@ using namespace sf;
 struct Score {
     int score = 0, bouns = 1, smallFscore = 10, medFscore = 20, bigFscore = 50,
     taileBscore = 100, starscore = 60, prealscore = 50,
-    scale = 0, lives = 3, trials = 3, speedP = 800, speedE = 100, livelnum = 1,
+    scale = 0, lives = 3, trials = 3,
+    livelnum = 1,
     currentFrenzy = 0, i = 0; //for counting frenzy word
+    float speedP = 800, speedE = 100;
 
     int FRENZYi[7]{ 0,0,0,0,0,0,0 };
     float dt, timer = 0;
@@ -40,36 +42,81 @@ struct GameSettings {
 
     Score score; GameSettings settings;
 
-struct fishes {
-    bool aten = 0, ate = 0, playerIntersectWFish = 0, draw = 1, dead = 0;
-    int size;
-    int score;
+struct setplayer {
     Sprite sprite;
-    Texture texture;
-    Vector2f Position;
-    
-    int frameW, frameH, mouthX, mouthY;
+    bool ate = false;
+    bool dead = 0;
+    bool aten = false;
+    bool draw = true;
+    bool isalive = true;
+    float dir = 1;
+    int size = 0;
+    int frameW, frameH;
     int frames, countframe, currentframe;
-
     float anitimer;
     float speed;
-    fishes() {
+    bool iseating = false;
+    float eatT = 0;
+    setplayer() {
         frameW = 0, frameH = 0, frames = 0, anitimer = 0, countframe = currentframe = 0, speed = 100;
+    
     }
-    fishes(Texture& t, int f, int W, int H) {
-        fishes();
-        texture = t;
+    setplayer(Texture& t, int f, int W, int H) {
+
+    
         countframe = f;
         currentframe = 0;
         anitimer = 0;
         frameW = W;
         frameH = H;
-        sprite.setTexture(texture);
+        sprite.setTexture(t);
         sprite.setOrigin(frameW / 2, frameH / 2);
-        mouthX = sprite.getPosition().x + sprite.getGlobalBounds().width / 2;
-        mouthY = sprite.getPosition().y;
     }
+};
 
+struct fishes
+{
+bool aten = 0, ate = 0, playerintersectfish = 0, draw = 1;
+float    endx;
+float direction;
+Sprite sprite;
+float basespeed;
+bool isalive = true;
+int frameW, frameH;
+int frames, countframe, currentframe;
+float anitimer;
+float speed;
+void setup(Texture& t, int cols, int rows, int frames, int rowindex) {
+    
+    sprite.setTexture(t);
+    frameW = t.getSize().x / cols;
+    frameH = t.getSize().y / rows;
+    countframe = frames;
+    currentframe = 0;
+    anitimer = 0;
+    sprite.setOrigin(frameW / 2, frameH / 2);
+    sprite.setTextureRect(IntRect(0, rowindex * frameH, frameW, frameH));
+}
+void animate(float dt, int rowindex) {
+    anitimer += dt;
+    if (anitimer > .1f) {
+        currentframe++;
+        currentframe %= countframe;
+        sprite.setTextureRect(IntRect(currentframe * frameW, rowindex * frameH, frameW, frameH));
+        anitimer = 0;
+    }
+}
+fishes() {
+    frameW = 0, frameH = 0, frames = 0, anitimer = 0, countframe = currentframe = 0 , speed=100;
+    isalive = true;
+}
+fishes(Texture& t, int f, int c, int r, int RI){
+
+    setup(t, c, r, f, RI);
+    isalive = true;
+    endx = rand() % 1300+300;
+    direction = 1;
+}
 };
 
 struct Shark {
@@ -92,35 +139,53 @@ struct Shark {
     void sharkAnimation(int frame, int row, int frameCountInEveryRow);
 };
 
+Vector2f enemyMouthposition(fishes& fish);
+
+bool enemymouthintersect(setplayer& player, fishes& enemy);
+
+bool isfront(setplayer& player, fishes& enemy);
+
+bool enemyisfront(setplayer& player, fishes& enemy);
+
 void cameraMovement(View& camera, Vector2f playerPosition, float BGWidth, float BGHeight);
 
-void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove);
+void intersection(setplayer& player, fishes& smallFish, fishes& medFish, fishes& bigFish);
 
 void window_mode(RenderWindow &window, bool full_screen, Vector2f res);
 
-void addfishs(Texture& t, int f, int w, int h, const int n);
+void addfishs(Texture& t, int cols, int rows, int frames, int rowindx,const int n);
 
 void setback(Sprite& sp, Texture& t);
 
-Vector2f Mouthposition(fishes& player);
+void resetgames(RenderWindow& window);
 
-int start();
+void Fishmovement(float dt, fishes& fish, int rowindex, setplayer& player);
 
-int draw(RenderWindow& window);
+void playermovement(float dt, setplayer& isplayer, RenderWindow& window);
+
+Vector2f Mouthposition(setplayer& player);
+
+bool mouthintersect(setplayer& player, fishes& enemy) {
+    Vector2f mouth = Mouthposition(player), enemypos = enemy.sprite.getPosition();
+    float dist = sqrt((mouth.x - enemypos.x) * (mouth.x - enemypos.x) + (mouth.y - enemypos.y) * (mouth.y - enemypos.y));
+    float  radius = enemy.frameW / 2;
+    return dist < radius;
+}
+//int start();
+
+void Sorry(setplayer&player, RenderWindow& window, float dt);
+
+int draw(setplayer&player, RenderWindow& window, float dt);
 
 int scoring(Shark& shark, float dt);
-
-void intersection();
 
 void playermovement(float dt, fishes& fish, Sprite& sprite, Texture& t,RenderWindow& window);
 
 void dead();
 
-void Sorry(RenderWindow& window, float dt);
-
 void ContinueY_N(RenderWindow& window);
 
-int mouthintersect(fishes& a, fishes& b);
+//int mouthintersect(fishes& a, fishes& b);
 
 struct commonAssets {
 
@@ -135,12 +200,132 @@ struct gameSounds {
     SoundBuffer click_buffer, main_theme_buffer;
     Sound click_sound, main_theme_sound;
 
-//    void load();
     void load();
 
     void Click_sound();
 
     void play_sound();
+};
+
+struct pauseMenu
+{
+    Texture stage, background;
+    Texture resume1, resume2;
+    Texture options1, options2;
+    Texture exit1, exit2;
+
+    Sprite stageSprite, backgroundSprite;
+    Sprite resumeSprite, optionsSprite, exitSprite;
+
+    RenderWindow* window = nullptr;
+
+    short selectedOption = 0;
+    bool pause = false;
+
+    void load()
+    {
+        if (!stage.loadFromFile("Sprites/pause menu/stage.png"))
+            cout << "Error loading stage" << endl;
+        if (!background.loadFromFile("Sprites/pause menu/stageBack.png"))
+            cout << "Error loading background" << endl;
+        if (!resume1.loadFromFile("Sprites/pause menu/resume on.png"))
+            cout << "Error loading resume1" << endl;
+        if (!resume2.loadFromFile("Sprites/pause menu/resume off.png"))
+            cout << "Error loading resume2" << endl;
+        if (!options1.loadFromFile("Sprites/pause menu/options on.png"))
+            cout << "Error loading options1" << endl;
+        if (!options2.loadFromFile("Sprites/pause menu/options off.png"))
+            cout << "Error loading options2" << endl;
+        if (!exit1.loadFromFile("Sprites/pause menu/exit on 4.png"))
+            cout << "Error loading exit1" << endl;
+        if (!exit2.loadFromFile("Sprites/pause menu/exit off.png"))
+            cout << "Error loading exit2" << endl;
+
+        stageSprite.setTexture(stage);
+        backgroundSprite.setTexture(background);
+        resumeSprite.setTexture(resume1);
+        optionsSprite.setTexture(options1);
+        exitSprite.setTexture(exit1);
+
+        stageSprite.setPosition(0.f, -370.0f);
+        backgroundSprite.setPosition(0.f, 110.0f);
+
+        stageSprite.setScale(1.3f, 1.3f);
+        backgroundSprite.setScale(1.3f, 1.3f);
+
+        resumeSprite.setOrigin(resume1.getSize().x / 2.f, resume1.getSize().y / 2.f);
+        optionsSprite.setOrigin(options1.getSize().x / 2.f, options1.getSize().y / 2.f);
+        exitSprite.setOrigin(exit1.getSize().x / 2.f, exit1.getSize().y / 2.f);
+
+        float centerX = 1400.f / 2.f;
+        float startY = 400.f;
+        float spacing = 150.f;
+
+        resumeSprite.setPosition(centerX, startY);
+        optionsSprite.setPosition(centerX, startY + spacing);
+        exitSprite.setPosition(centerX, startY + spacing * 2);
+    }
+
+    void selection()
+    {
+        if (selectedOption == -1) return;
+        if (selectedOption == 0) pause = false;
+        //if (selectedOption == 1) optionsmenu.open = true;
+        if (selectedOption == 2) window->close();
+    }
+
+    void drawBackground()
+    {
+        window->draw(backgroundSprite);
+        window->draw(stageSprite);
+    }
+
+    void draw()
+    {
+        drawBackground();
+        resumeSprite.setTexture(selectedOption == 0 ? resume1 : resume2);
+        optionsSprite.setTexture(selectedOption == 1 ? options1 : options2);
+        exitSprite.setTexture(selectedOption == 2 ? exit1 : exit2);
+
+
+        window->draw(resumeSprite);
+        window->draw(optionsSprite);
+        window->draw(exitSprite);
+    }
+
+    void eventHandler(Event& event)
+    {
+        if (event.type == Event::KeyPressed &&
+            event.key.code == Keyboard::Escape)
+            pause = !pause;
+
+        if (!pause) return;
+
+        if (event.type == Event::KeyPressed) 
+        {
+        if (event.key.code == Keyboard::Up)   selectedOption--;
+        if (event.key.code == Keyboard::Down) selectedOption++;
+
+        selectedOption = (selectedOption + 3) % 3;
+
+        if (event.key.code == Keyboard::Return)  selection();
+        }
+
+        if (event.type == Event::MouseMoved ||
+            event.type == Event::MouseButtonReleased)
+        {
+            Vector2f worldPos = window->mapPixelToCoords(Mouse::getPosition(*window));
+
+            if (resumeSprite.getGlobalBounds().contains(worldPos))       selectedOption = 0;
+            else if (optionsSprite.getGlobalBounds().contains(worldPos)) selectedOption = 1;
+            else if (exitSprite.getGlobalBounds().contains(worldPos))    selectedOption = 2;
+            else selectedOption = -1;
+
+            if (event.type == Event::MouseButtonReleased &&
+                event.mouseButton.button == Mouse::Left)
+                selection();
+        }
+    }
 };
 
 struct helpAndOptions {
@@ -326,44 +511,39 @@ struct Cont {
 struct Preal {
     bool aten;
 };
-fishes enemy[100];
 
 
 Cont Continue;
 SORRY sorry;
-fishes smallFish, medFish, bigFish, player;
+fishes smallFish, medFish, bigFish; setplayer player;
 Preal preal;
+fishes enemy[100];
 
 int main()
 {
     mainMenu* menu = nullptr;
     helpAndOptions* help = nullptr;
     RenderWindow window;
+    pauseMenu men;
+    men.load();
     window_mode(window, settings.controls[2], settings.res);
     Event event;
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 0; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
+    short scene = 4; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
     commonAssets assets;
     gameSounds sounds;
     assets.load();
     sounds.load();
-    
+    men.window = &window;
     mermaid.start_mermaid();
     shark.start();
     while (window.isOpen())
     {
         float dt = clock.restart().asSeconds();
-
-
-
-
-
-
-
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed)
@@ -372,6 +552,8 @@ int main()
                 menu->handle_movements(event, scene );
             else if(scene == 1 && help)
                 help->handle_movements(event, scene);
+            else
+                men.eventHandler(event);
             if (event.type == Event::Closed) {
                 window.close();
             }
@@ -438,6 +620,10 @@ int main()
             shark.update(dt);
             shark.draw(window);
             break;
+        case 4:
+            window.clear();
+            men.draw();
+            window.display();
         }
 
 
@@ -452,21 +638,147 @@ int main()
 
 
 
-void addfishs(Texture& t, int f, int w, int h, const int n) {
+void addfishs(Texture& t, int cols, int rows, int frames, int rowindx,const int n)
+{
     for (int i = 0; i < n; i++) {
-        enemy[i] = fishes(t, f, w, h);
-        enemy[i].sprite.setPosition(rand() % 800, rand() % 600);
-        enemy[i].speed = rand() % 100 + 100; // to make speed random
+        enemy[i] = fishes(t, frames, cols, rows, rowindx);
+        enemy[i].sprite.setPosition(rand() % 800,300+ rand() % 600);
+        enemy[i].speed = rand() % 100 + 100; 
+        enemy[i].basespeed = enemy[i].speed;
     }
-
 }
 
-Vector2f Mouthposition(fishes& player) {
+void intersection(setplayer& player, fishes& smallFish, fishes& medFish, fishes& bigFish) {
+    if (player.aten) player.draw = false;
+
+    if (player.sprite.getGlobalBounds().intersects(smallFish.sprite.getGlobalBounds()) && !smallFish.aten && player.draw && mouthintersect(player, smallFish) && isfront(player, smallFish)) {
+        smallFish.aten = 1;
+        smallFish.draw = 0;
+        player.iseating = true;
+        player.eatT = .2f;
+        player.ate = 1;
+            score.score += score.smallFscore * score.bouns;
+    }
+
+    if (player.sprite.getGlobalBounds().intersects(medFish.sprite.getGlobalBounds()) && !medFish.aten && player.draw && enemymouthintersect(player, medFish) && enemyisfront(player, medFish)) {
+        if (player.sprite.getScale().x >= medFish.sprite.getScale().x) {
+            medFish.aten = 1;
+            medFish.draw = 0;
+            player.ate = 1;
+            player.iseating = true;
+            player.eatT = .2f;
+                score.score += score.medFscore * score.bouns;
+                player.sprite.setTextureRect(IntRect(player.frameW * player.currentframe, 0, player.frameW, player.frameH));
+        }
+        else {
+            medFish.ate = 1;
+            player.aten = 1;
+        }
+
+    }
+
+    if (player.sprite.getGlobalBounds().intersects(bigFish.sprite.getGlobalBounds()) && !bigFish.aten && player.draw && enemymouthintersect(player, bigFish) && enemyisfront(player, bigFish)) {
+        if (player.sprite.getScale().x >= bigFish.sprite.getScale().x) {
+            bigFish.aten = 1;
+            bigFish.draw = 0;
+            player.ate = 1;
+            player.iseating = true;
+            player.eatT = .2f;
+                score.score += score.bigFscore * score.bouns;
+        }
+        else {
+            bigFish.ate = 1;
+            player.aten = 1;
+        }
+    }
+}
+
+void Fishmovement(float dt, fishes& fish, int rowindex, setplayer& player) {
+
+    if (player.sprite.getScale().x > fish.sprite.getScale().x && abs(player.sprite.getPosition().x - fish.sprite.getPosition().x) < 80) {
+        if (player.sprite.getPosition().x < fish.sprite.getPosition().x) {
+            fish.direction = 1;
+            fish.endx = rand() % 1300 + 300;
+        }
+        else {
+            fish.direction = -1;
+            fish.endx = rand() % 400;
+        }
+
+    }
+    else
+        fish.speed = fish.basespeed;
+
+    //fish.animate(dt, rowindex);
+    fish.sprite.move(fish.speed * fish.direction * dt, 0);
+    if (fish.direction == 1 && fish.sprite.getPosition().x >= fish.endx) {
+        fish.direction = -1;
+        fish.endx = rand() % 400;
+    }
+    if (fish.direction == -1 && fish.sprite.getPosition().x <= fish.endx) {
+        fish.direction = 1;
+        fish.endx = rand() % 1300 + 300;
+    }
+    //fish.sprite.setScale(fish.direction, 1.f);
+    if (fish.direction == 1) {
+        fish.currentframe = 1;
+    }
+    else {
+        fish.currentframe = 0;
+    }
+
+    fish.sprite.setTextureRect(IntRect(
+        fish.currentframe * fish.frameW,
+        rowindex * fish.frameH,
+        fish.frameW,
+        fish.frameH
+    ));
+    //fish.sprite.move(dt * speedE, 0);
+}
+
+Vector2f Mouthposition(setplayer& player) {
     Vector2f pos = player.sprite.getPosition();
     float offset = player.frameW / 2;
     if (player.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
     else
         return Vector2f(pos.x - offset, pos.y);
+}
+
+Vector2f enemyMouthposition(fishes& fish) {
+    Vector2f pos = fish.sprite.getPosition();
+    float offset = fish.frameW / 2;
+    if (fish.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
+    else
+        return Vector2f(pos.x - offset, pos.y);
+}
+
+bool enemymouthintersect(setplayer& player, fishes& enemy) {
+    Vector2f mouth = enemyMouthposition(enemy), enemypos = player.sprite.getPosition();
+        float dist = sqrt((mouth.x - enemypos.x) * (mouth.x - enemypos.x) + (mouth.y - enemypos.y) * (mouth.y - enemypos.y));
+    float  radius = player.frameW / 2;
+    return dist < radius;
+}
+
+bool isfront(setplayer& player, fishes& enemy) {
+    float dx = enemy.sprite.getPosition().x - player.sprite.getPosition().x;
+    if (player.dir == 1)
+        return dx > 0;
+    else
+        return dx < 0;
+}
+
+bool enemyisfront(setplayer& player, fishes& enemy) {
+    float dx = enemy.sprite.getPosition().x - player.sprite.getPosition().x;
+    if (player.currentframe == 1)
+        return dx > 0;
+    else
+        return      dx < 0;
+}
+
+void resetgames(RenderWindow& window) {
+        float speedP = 800; //p for player
+        float speedE = 100; //E for enemy
+    Vector2f   target = window.mapPixelToCoords(Mouse::getPosition(window));
 }
 
 void setback(Sprite& sp, Texture& t) { // to make background suit with window
@@ -477,128 +789,99 @@ void setback(Sprite& sp, Texture& t) { // to make background suit with window
     );
 }
 
-void intersection(RectangleShape playerHitbox, RectangleShape fishHitbox, Vector2f playerPosition, Vector2f fishPosition, int playerSize, int fishSize, int score, int lives, bool drawPlayer, bool canMove) {
 
-	if (playerHitbox.getGlobalBounds().intersects(fishHitbox.getGlobalBounds())) {
+// int start() {
 
-		if (playerSize >= fishSize) {
+//     //test stuff//
+//     player.frameW = 356 / 2;
+//     player.frameH = 167;
 
-			score += 50;
-			playerSize += 5;
+//     smallFish.frameW = 127;
+//     smallFish.frames = 105;
 
-		}
+//     medFish.frameW = 127;
+//     medFish.frames = 105;
 
-		else {
+//     bigFish.frameW = 127;
+//     bigFish.frames = 105;
 
-			lives--;
+//     smallFish.texture.loadFromFile("Assets\\Untitled-1.png");
+//     smallFish.sprite.setTexture(smallFish.texture);
+//     smallFish.sprite.setPosition(900, 100);
+//     smallFish.sprite.setScale(.7, .7);
 
-		}
+//     medFish.texture.loadFromFile("Assets\\Untitled-1.png");
+//     medFish.sprite.setTexture(medFish.texture);
+//     medFish.sprite.setPosition(900, 300);
+//     medFish.sprite.setScale(1.2, 1.2);
 
-	}
-
-	if (lives <= 0) {
-
-		lives = 0;
-		drawPlayer = false;
-		canMove = false;
-		playerPosition = fishPosition;
-
-	}
-
-}
-
-int start() {
-
-    //test stuff//
-    player.frameW = 356 / 2;
-    player.frameH = 167;
-
-    smallFish.frameW = 127;
-    smallFish.frames = 105;
-
-    medFish.frameW = 127;
-    medFish.frames = 105;
-
-    bigFish.frameW = 127;
-    bigFish.frames = 105;
-
-    smallFish.texture.loadFromFile("Assets\\Untitled-1.png");
-    smallFish.sprite.setTexture(smallFish.texture);
-    smallFish.sprite.setPosition(900, 100);
-    smallFish.sprite.setScale(.7, .7);
-
-    medFish.texture.loadFromFile("Assets\\Untitled-1.png");
-    medFish.sprite.setTexture(medFish.texture);
-    medFish.sprite.setPosition(900, 300);
-    medFish.sprite.setScale(1.2, 1.2);
-
-    bigFish.texture.loadFromFile("Assets\\Untitled-1.png");
-    bigFish.sprite.setTexture(bigFish.texture);
-    bigFish.sprite.setPosition(900, 500);
-    bigFish.sprite.setScale(2, 2);
-    //  //
+//     bigFish.texture.loadFromFile("Assets\\Untitled-1.png");
+//     bigFish.sprite.setTexture(bigFish.texture);
+//     bigFish.sprite.setPosition(900, 500);
+//     bigFish.sprite.setScale(2, 2);
+//     //  //
 
 
-    player.size = 15; // then 35 then 55
-    smallFish.size = 10;
-    medFish.size = 30;
-    bigFish.size = 50;
+//     player.size = 15; // then 35 then 55
+//     smallFish.size = 10;
+//     medFish.size = 30;
+//     bigFish.size = 50;
 
-    smallFish.score = 10;
-    medFish.score = 20;
-    bigFish.score = 50;
+//     smallFish.score = 10;
+//     medFish.score = 20;
+//     bigFish.score = 50;
 
-    player.texture.loadFromFile("Assets\\fish.png");
-    player.sprite.setTexture(player.texture);
-    player.sprite.setPosition(320, 450);
-    player.sprite.setTextureRect(IntRect(0, 0, player.frameW, player.frameH));
-    player.sprite.setScale(1.0f, 1.0f);
-
-
-    score.font.loadFromFile("Assets\\font.TTF");
-    for (int q = 0; q < 7; q++) {
-        score.FRENZYiText[q].setFont(score.font);
-        score.FRENZYiText[q].setPosition(200 + 20 * q, 200);
-        score.FRENZYiText[q].setString(string(1, score.word[q]));
-        score.FRENZYiText[q].setCharacterSize(40);
-    }
-    score.scoretext.setFont(score.font);
-    score.scoretext.setPosition(300, 300);
-    score.scoretext.setString(to_string(score.score));
-    score.scoretext.setCharacterSize(30);
+//     player.texture.loadFromFile("Assets\\fish.png");
+//     player.sprite.setTexture(player.texture);
+//     player.sprite.setPosition(320, 450);
+//     player.sprite.setTextureRect(IntRect(0, 0, player.frameW, player.frameH));
+//     player.sprite.setScale(1.0f, 1.0f);
 
 
-    sorry.textures[0].loadFromFile("Assets\\s.jpeg");
-    sorry.textures[1].loadFromFile("Assets\\o.jpeg");
-    sorry.textures[2].loadFromFile("Assets\\r1.jpeg");
-    sorry.textures[3].loadFromFile("Assets\\r2.jpeg");
-    sorry.textures[4].loadFromFile("Assets\\y.jpeg");
+//     score.font.loadFromFile("Assets\\font.TTF");
+//     for (int q = 0; q < 7; q++) {
+//         score.FRENZYiText[q].setFont(score.font);
+//         score.FRENZYiText[q].setPosition(200 + 20 * q, 200);
+//         score.FRENZYiText[q].setString(string(1, score.word[q]));
+//         score.FRENZYiText[q].setCharacterSize(40);
+//     }
+//     score.scoretext.setFont(score.font);
+//     score.scoretext.setPosition(300, 300);
+//     score.scoretext.setString(to_string(score.score));
+//     score.scoretext.setCharacterSize(30);
 
-    for (int w = 0; w < 5; w++) {
-        sorry.sprites[w].setTexture(sorry.textures[w]);
-        sorry.sprites[w].setPosition(80, 200 + 10 * w);
-    }
+
+//     sorry.textures[0].loadFromFile("Assets\\s.jpeg");
+//     sorry.textures[1].loadFromFile("Assets\\o.jpeg");
+//     sorry.textures[2].loadFromFile("Assets\\r1.jpeg");
+//     sorry.textures[3].loadFromFile("Assets\\r2.jpeg");
+//     sorry.textures[4].loadFromFile("Assets\\y.jpeg");
+
+//     for (int w = 0; w < 5; w++) {
+//         sorry.sprites[w].setTexture(sorry.textures[w]);
+//         sorry.sprites[w].setPosition(80, 200 + 10 * w);
+//     }
 
 
-	Continue.CONTtexture.loadFromFile("Assets\\CONT.png");
-	Continue.CONTsprite.setTexture(Continue.CONTtexture);
-	Continue.YESt[0].loadFromFile("Assets\\nonactive yes.png");
-	Continue.YESt[1].loadFromFile("Assets\\active yes.png");
-	Continue.YESsprite[0].setTexture(Continue.YESt[0]);
-	Continue.YESsprite[1].setTexture(Continue.YESt[1]);
-	Continue.YESsprite[0].setPosition(130, 600);
-	Continue.YESsprite[1].setPosition(130, 600);
-	Continue.NOt[0].loadFromFile("Assets\\nonactive no.png");
-	Continue.NOt[1].loadFromFile("Assets\\active no.png");
-	Continue.NOsprite[0].setTexture(Continue.NOt[0]);
-	Continue.NOsprite[1].setTexture(Continue.NOt[1]);
-	Continue.NOsprite[0].setPosition(160, 600);
-	Continue.NOsprite[1].setPosition(160, 600);
-    Continue.ContinuesLeft.setFont(score.font);
-	Continue.ContinuesLeft.setPosition(100, 650);
-	Continue.ContinuesLeft.setString("continues left: " + to_string(score.trials));
-    return 0;
-}
+// 	Continue.CONTtexture.loadFromFile("Assets\\CONT.png");
+// 	Continue.CONTsprite.setTexture(Continue.CONTtexture);
+// 	Continue.YESt[0].loadFromFile("Assets\\nonactive yes.png");
+// 	Continue.YESt[1].loadFromFile("Assets\\active yes.png");
+// 	Continue.YESsprite[0].setTexture(Continue.YESt[0]);
+// 	Continue.YESsprite[1].setTexture(Continue.YESt[1]);
+// 	Continue.YESsprite[0].setPosition(130, 600);
+// 	Continue.YESsprite[1].setPosition(130, 600);
+// 	Continue.NOt[0].loadFromFile("Assets\\nonactive no.png");
+// 	Continue.NOt[1].loadFromFile("Assets\\active no.png");
+// 	Continue.NOsprite[0].setTexture(Continue.NOt[0]);
+// 	Continue.NOsprite[1].setTexture(Continue.NOt[1]);
+// 	Continue.NOsprite[0].setPosition(160, 600);
+// 	Continue.NOsprite[1].setPosition(160, 600);
+//     Continue.ContinuesLeft.setFont(score.font);
+// 	Continue.ContinuesLeft.setPosition(100, 650);
+// 	Continue.ContinuesLeft.setString("continues left: " + to_string(score.trials));
+//     return 0;
+// }
 
 int scoring(Shark &shark, float dt) {
     int greenCount = 0, redCount = 0;
@@ -676,12 +959,10 @@ int scoring(Shark &shark, float dt) {
         score.bigFishCanBeAten = 1;
     }
 
-    if (score.score >= 300 * score.livelnum) {
+    if (score.score >= 1200 * score.livelnum)
         player.size = 55;
-    }
-    else if (score.score >= 1200 * score.livelnum) {
+    else if (score.score >= 300 * score.livelnum) 
         player.size = 35;
-    }
 
     score.scoretext.setString(to_string(score.score));
 
@@ -707,11 +988,33 @@ void playermovement(float dt, fishes& fish, Sprite& sprite, Texture& t, RenderWi
     }
 }
 
-void intersection() {
-    if (player.dead) return;
+void Sorry(setplayer&player, RenderWindow& window, float dt) {
+    if (!sorry.active) return;
+
+    sorry.timer += dt;
+
+    if (sorry.timer < 3) {
+        player.draw = 0;
+        for (int w = 0; w < 5; w++) {
+            window.draw(sorry.sprites[w]);
+        }
+    }
+    else {
+        player.aten = 0;
+        player.dead = 0;
+        player.draw = 1;
+        if (player.sprite.getPosition().y < 250) {
+            player.sprite.move(0, 350 * dt);
+        }
+        else {
+            sorry.timer = 0;
+            sorry.active = 0;
+        }
+        return;
+    }
 }
 
-int draw(RenderWindow& window, float dt) {
+int draw(setplayer&player, RenderWindow& window, float dt) {
 
     if (player.draw) window.draw(player.sprite);
     if (smallFish.draw) window.draw(smallFish.sprite);
@@ -723,8 +1026,7 @@ int draw(RenderWindow& window, float dt) {
         window.draw(score.FRENZYiText[q]);
     }
 
-    Sorry(window, dt);
-    ContinueY_N(window);
+    Sorry(player, window, dt);
 
     return 0;
 }
@@ -752,34 +1054,6 @@ void dead() {
     if (score.trials <= 0) {
         score.lives = 0;
         //gameover
-    }
-}
-
-void Sorry(RenderWindow& window, float dt) {
-
-    if (!sorry.active) return;
-
-    sorry.timer += dt;
-
-    if (sorry.timer < 2) {
-        player.draw = 0;
-        for (int w = 0; w < 5; w++) {
-            window.draw(sorry.sprites[w]);
-        }
-    }
-    else {
-
-        player.dead = 0;
-        player.draw = 1;
-        if (player.sprite.getPosition().y < 250) {
-            player.sprite.move(0, 350 * dt);
-        }
-        else {
-            player.aten = 0;//--------------------------
-            sorry.timer = 0;
-            sorry.active = 0;
-        }
-        return;
     }
 }
 
@@ -817,48 +1091,94 @@ void ContinueY_N(RenderWindow& window) {
     }
 }
 
-int mouthintersect(fishes& a, fishes& b) {
-    if (&a == &b) return 0;
+// int mouthintersect(fishes& a, fishes& b) {
+//     if (&a == &b) return 0;
 
-    fishes& bigger = (a.size > b.size) ? a : b;
-    fishes& smaller = (a.size > b.size) ? b : a;
+//     fishes& bigger = (a.size > b.size) ? a : b;
+//     fishes& smaller = (a.size > b.size) ? b : a;
 
-    if (smaller.aten) return 0;
+//     if (smaller.aten) return 0;
 
-    Vector2f mouth = Mouthposition(bigger);
-    Vector2f targetPos = smaller.sprite.getPosition();
+//     Vector2f mouth = Mouthposition(bigger);
+//     Vector2f targetPos = smaller.sprite.getPosition();
 
-    float dx = mouth.x - targetPos.x;
-    float dy = mouth.y - targetPos.y;
-    float dist = sqrt(dx * dx + dy * dy);
+//     float dx = mouth.x - targetPos.x;
+//     float dy = mouth.y - targetPos.y;
+//     float dist = sqrt(dx * dx + dy * dy);
 
-    float radius = smaller.frameW / 2;
+//     float radius = smaller.frameW / 2;
 
-    if (dist <= radius) {
-        // bigger fish eats smaller one
+//     if (dist <= radius) {
+//         // bigger fish eats smaller one
 
-        bigger.ate = 1;
-        smaller.aten = 1;
-        smaller.dead = 1;
-        smaller.draw = 0;
+//         bigger.ate = 1;
+//         smaller.aten = 1;
+//         smaller.dead = 1;
+//         smaller.draw = 0;
 
-        if (player.ate) {
-            score.score += smaller.score * score.bouns;
+//         if (player.ate) {
+//             score.score += smaller.score * score.bouns;
+//         }
+
+//         return 1;
+//     }
+//     else if (dist <= radius * 2) {
+//         // if the smaller fish isnt the player, then it should run away
+//         return 2;
+//     }
+//     else {
+//         // two fishs are far from each other so nothing happens
+//         return 0;
+//     }
+
+// }
+
+
+void playermovement(float dt, setplayer& isplayer, RenderWindow& window) {
+
+    Vector2f target = window.mapPixelToCoords(Mouse::getPosition(window));
+    Vector2f direction = target - isplayer.sprite.getPosition();
+
+    float length = sqrt(direction.x * direction.x + direction.y * direction.y);
+
+    if (length > 5) {
+        direction /= length;
+        if (!isplayer.iseating) {
+            if (direction.x > 0) {
+                isplayer.currentframe = 2;
+                isplayer.dir = 1;
+            }
+            else if (direction.x < 0) {
+                isplayer.currentframe = 0;
+                isplayer.dir = -1;
+            }
         }
 
-        return 1;
-    }
-    else if (dist <= radius * 2) {
-        // if the smaller fish isnt the player, then it should run away
-        return 2;
-    }
-    else {
-        // two fishs are far from each other so nothing happens
-        return 0;
-    }
+            // isplayer.sprite.setTextureRect(IntRect(isplayer.currentframe * isplayer.frameW, 0, isplayer.frameW, isplayer.frameH));
 
+            isplayer.sprite.move(direction * score.speedP * dt);
+    }
 }
 
+void cameraMovement(View& camera, Vector2f playerPosition, float BGWidth, float BGHeight)
+{
+	float x = playerPosition.x;
+	float y = playerPosition.y;
+
+	if (x < 720) {
+		x = 720;
+	}
+	if (y < 450) {
+		y = 450;
+	}
+	if (x > BGWidth - 720) {
+		x = BGWidth - 720;
+	}
+	if (y > BGHeight - 450) {
+		y = BGHeight - 450;
+	}
+	camera.setCenter(x, y);
+}
 // different structs
 void commonAssets::load()
 {
