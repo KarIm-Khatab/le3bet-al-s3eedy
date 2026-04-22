@@ -42,79 +42,52 @@ struct GameSettings {
 
     Score score; GameSettings settings;
 
-struct setplayer {
+struct AnimatedSprite {
     Sprite sprite;
-    bool ate = false;
-    bool dead = 0;
-    bool aten = false;
-    bool draw = true;
-    bool isalive = true;
-    float dir = 1;
-    int size = 0;
-    int frameW, frameH;
-    int frames, countframe, currentframe;
-    float anitimer;
-    float speed;
-    bool iseating = false;
-    float eatT = 0;
-    setplayer() {
-        frameW = 0, frameH = 0, frames = 0, anitimer = 0, countframe = currentframe = 0, speed = 100;
-    
-    }
-    setplayer(Texture& t, int f, int W, int H) {
+    int frameW = 0, frameH = 0;
+    int countframe = 0, currentframe = 0;
+    float anitimer = 0;
+    float speed = 100;
 
-    
-        countframe = f;
+    void setup(Texture& t, int cols, int rows, int frames, int rowIndex) {
+        sprite.setTexture(t);
+        frameW = t.getSize().x / cols;
+        frameH = t.getSize().y / rows;
+        countframe = frames;
         currentframe = 0;
         anitimer = 0;
-        frameW = W;
-        frameH = H;
-        sprite.setTexture(t);
         sprite.setOrigin(frameW / 2, frameH / 2);
+        sprite.setTextureRect(IntRect(0, rowIndex * frameH, frameW, frameH));
+    }
+
+    void animate(float dt, int rowIndex) {
+        anitimer += dt;
+        if (anitimer > 0.1f) {
+            currentframe = (currentframe + 1) % countframe;
+            sprite.setTextureRect(IntRect(currentframe * frameW, rowIndex * frameH, frameW, frameH));
+            anitimer = 0;
+        }
     }
 };
 
-struct fishes
-{
-bool aten = 0, ate = 0, playerintersectfish = 0, draw = 1;
-float    endx;
-float direction;
-Sprite sprite;
-float basespeed;
-bool isalive = true;
-int frameW, frameH;
-int frames, countframe, currentframe;
-float anitimer;
-float speed;
-void setup(Texture& t, int cols, int rows, int frames, int rowindex) {
-    
-    sprite.setTexture(t);
-    frameW = t.getSize().x / cols;
-    frameH = t.getSize().y / rows;
-    countframe = frames;
-    currentframe = 0;
-    anitimer = 0;
-    sprite.setOrigin(frameW / 2, frameH / 2);
-    sprite.setTextureRect(IntRect(0, rowindex * frameH, frameW, frameH));
-}
-void animate(float dt, int rowindex) {
-    anitimer += dt;
-    if (anitimer > .1f) {
-        currentframe++;
-        currentframe %= countframe;
-        sprite.setTextureRect(IntRect(currentframe * frameW, rowindex * frameH, frameW, frameH));
-        anitimer = 0;
-    }
-}
-fishes() {
-    frameW = 0, frameH = 0, frames = 0, anitimer = 0, countframe = currentframe = 0 , speed=100;
-    isalive = true;
-}
-fishes(Texture& t, int f, int c, int r, int RI){
+struct setplayer {
+    AnimatedSprite anim;
+    bool ate = false, dead = false, aten = false, draw = true, isalive = true, iseating = false;
+    float dir = 1;
+    int size = 0;
+    float eatT = 0;
+};
 
-    setup(t, c, r, f, RI);
+struct fishes {
+    AnimatedSprite anim;
+    bool aten = false, ate = false, playerintersectfish = false, draw = true, isalive = true;
+    float endx = 0, direction = 1, basespeed = 100;
+fishes() {}
+
+fishes(Texture& t, int f, int c, int r, int RI) {
+    anim.setup(t, c, r, f, RI);
     isalive = true;
-    endx = rand() % 1300+300;
+    endx = rand() % 1300 + 300;
     direction = 1;
 }
 };
@@ -166,9 +139,9 @@ void playermovement(float dt, setplayer& isplayer, RenderWindow& window);
 Vector2f Mouthposition(setplayer& player);
 
 bool mouthintersect(setplayer& player, fishes& enemy) {
-    Vector2f mouth = Mouthposition(player), enemypos = enemy.sprite.getPosition();
+    Vector2f mouth = Mouthposition(player), enemypos = enemy.anim.sprite.getPosition();
     float dist = sqrt((mouth.x - enemypos.x) * (mouth.x - enemypos.x) + (mouth.y - enemypos.y) * (mouth.y - enemypos.y));
-    float  radius = enemy.frameW / 2;
+    float  radius = enemy.anim.frameW / 2;
     return dist < radius;
 }
 //int start();
@@ -515,7 +488,8 @@ struct Preal {
 
 Cont Continue;
 SORRY sorry;
-fishes smallFish, medFish, bigFish; setplayer player;
+fishes smallFish, medFish, bigFish;
+setplayer player;
 Preal preal;
 fishes enemy[100];
 
@@ -524,21 +498,21 @@ int main()
     mainMenu* menu = nullptr;
     helpAndOptions* help = nullptr;
     RenderWindow window;
-    pauseMenu men;
-    men.load();
+    pauseMenu* pause = nullptr;
+    //men.load();
     window_mode(window, settings.controls[2], settings.res);
     Event event;
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 4; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
+    short scene = 3; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
     commonAssets assets;
     gameSounds sounds;
     assets.load();
     sounds.load();
-    men.window = &window;
+    //pause->window = &window;
     mermaid.start_mermaid();
     shark.start();
     while (window.isOpen())
@@ -552,8 +526,8 @@ int main()
                 menu->handle_movements(event, scene );
             else if(scene == 1 && help)
                 help->handle_movements(event, scene);
-            else
-                men.eventHandler(event);
+            else if(pause && pause->pause)
+                pause->eventHandler(event);
 
             if (event.type == Event::KeyPressed)
             {
@@ -619,7 +593,7 @@ int main()
             break;
         case 4:
             window.clear();
-            men.draw();
+            pause->draw();
             window.display();
             break;
         }
@@ -640,16 +614,16 @@ void addfishs(Texture& t, int cols, int rows, int frames, int rowindx,const int 
 {
     for (int i = 0; i < n; i++) {
         enemy[i] = fishes(t, frames, cols, rows, rowindx);
-        enemy[i].sprite.setPosition(rand() % 800,300+ rand() % 600);
-        enemy[i].speed = rand() % 100 + 100; 
-        enemy[i].basespeed = enemy[i].speed;
+        enemy[i].anim.sprite.setPosition(rand() % 800,300+ rand() % 600);
+        enemy[i].anim.speed = rand() % 100 + 100; 
+        enemy[i].basespeed = enemy[i].anim.speed;
     }
 }
 
 void intersection(setplayer& player, fishes& smallFish, fishes& medFish, fishes& bigFish) {
     if (player.aten) player.draw = false;
 
-    if (player.sprite.getGlobalBounds().intersects(smallFish.sprite.getGlobalBounds()) && !smallFish.aten && player.draw && mouthintersect(player, smallFish) && isfront(player, smallFish)) {
+    if (player.anim.sprite.getGlobalBounds().intersects(smallFish.anim.sprite.getGlobalBounds()) && !smallFish.aten && player.draw && mouthintersect(player, smallFish) && isfront(player, smallFish)) {
         smallFish.aten = 1;
         smallFish.draw = 0;
         player.iseating = true;
@@ -658,15 +632,15 @@ void intersection(setplayer& player, fishes& smallFish, fishes& medFish, fishes&
             score.score += score.smallFscore * score.bouns;
     }
 
-    if (player.sprite.getGlobalBounds().intersects(medFish.sprite.getGlobalBounds()) && !medFish.aten && player.draw && enemymouthintersect(player, medFish) && enemyisfront(player, medFish)) {
-        if (player.sprite.getScale().x >= medFish.sprite.getScale().x) {
+    if (player.anim.sprite.getGlobalBounds().intersects(medFish.anim.sprite.getGlobalBounds()) && !medFish.aten && player.draw && enemymouthintersect(player, medFish) && enemyisfront(player, medFish)) {
+        if (player.anim.sprite.getScale().x >= medFish.anim.sprite.getScale().x) {
             medFish.aten = 1;
             medFish.draw = 0;
             player.ate = 1;
             player.iseating = true;
             player.eatT = .2f;
                 score.score += score.medFscore * score.bouns;
-                player.sprite.setTextureRect(IntRect(player.frameW * player.currentframe, 0, player.frameW, player.frameH));
+                player.anim.sprite.setTextureRect(IntRect(player.anim.frameW * player.anim.currentframe, 0, player.anim.frameW, player.anim.frameH));
         }
         else {
             medFish.ate = 1;
@@ -675,8 +649,8 @@ void intersection(setplayer& player, fishes& smallFish, fishes& medFish, fishes&
 
     }
 
-    if (player.sprite.getGlobalBounds().intersects(bigFish.sprite.getGlobalBounds()) && !bigFish.aten && player.draw && enemymouthintersect(player, bigFish) && enemyisfront(player, bigFish)) {
-        if (player.sprite.getScale().x >= bigFish.sprite.getScale().x) {
+    if (player.anim.sprite.getGlobalBounds().intersects(bigFish.anim.sprite.getGlobalBounds()) && !bigFish.aten && player.draw && enemymouthintersect(player, bigFish) && enemyisfront(player, bigFish)) {
+        if (player.anim.sprite.getScale().x >= bigFish.anim.sprite.getScale().x) {
             bigFish.aten = 1;
             bigFish.draw = 0;
             player.ate = 1;
@@ -693,8 +667,8 @@ void intersection(setplayer& player, fishes& smallFish, fishes& medFish, fishes&
 
 void Fishmovement(float dt, fishes& fish, int rowindex, setplayer& player) {
 
-    if (player.sprite.getScale().x > fish.sprite.getScale().x && abs(player.sprite.getPosition().x - fish.sprite.getPosition().x) < 80) {
-        if (player.sprite.getPosition().x < fish.sprite.getPosition().x) {
+    if (player.anim.sprite.getScale().x > fish.anim.sprite.getScale().x && abs(player.anim.sprite.getPosition().x - fish.anim.sprite.getPosition().x) < 80) {
+        if (player.anim.sprite.getPosition().x < fish.anim.sprite.getPosition().x) {
             fish.direction = 1;
             fish.endx = rand() % 1300 + 300;
         }
@@ -705,60 +679,60 @@ void Fishmovement(float dt, fishes& fish, int rowindex, setplayer& player) {
 
     }
     else
-        fish.speed = fish.basespeed;
+        fish.anim.speed = fish.basespeed;
 
     //fish.animate(dt, rowindex);
-    fish.sprite.move(fish.speed * fish.direction * dt, 0);
-    if (fish.direction == 1 && fish.sprite.getPosition().x >= fish.endx) {
+    fish.anim.sprite.move(fish.anim.speed * fish.direction * dt, 0);
+    if (fish.direction == 1 && fish.anim.sprite.getPosition().x >= fish.endx) {
         fish.direction = -1;
         fish.endx = rand() % 400;
     }
-    if (fish.direction == -1 && fish.sprite.getPosition().x <= fish.endx) {
+    if (fish.direction == -1 && fish.anim.sprite.getPosition().x <= fish.endx) {
         fish.direction = 1;
         fish.endx = rand() % 1300 + 300;
     }
     //fish.sprite.setScale(fish.direction, 1.f);
     if (fish.direction == 1) {
-        fish.currentframe = 1;
+        fish.anim.currentframe = 1;
     }
     else {
-        fish.currentframe = 0;
+        fish.anim.currentframe = 0;
     }
 
-    fish.sprite.setTextureRect(IntRect(
-        fish.currentframe * fish.frameW,
-        rowindex * fish.frameH,
-        fish.frameW,
-        fish.frameH
+    fish.anim.sprite.setTextureRect(IntRect(
+        fish.anim.currentframe * fish.anim.frameW,
+        rowindex * fish.anim.frameH,
+        fish.anim.frameW,
+        fish.anim.frameH
     ));
     //fish.sprite.move(dt * speedE, 0);
 }
 
 Vector2f Mouthposition(setplayer& player) {
-    Vector2f pos = player.sprite.getPosition();
-    float offset = player.frameW / 2;
-    if (player.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
+    Vector2f pos = player.anim.sprite.getPosition();
+    float offset = player.anim.frameW / 2;
+    if (player.anim.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
     else
         return Vector2f(pos.x - offset, pos.y);
 }
 
 Vector2f enemyMouthposition(fishes& fish) {
-    Vector2f pos = fish.sprite.getPosition();
-    float offset = fish.frameW / 2;
-    if (fish.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
+    Vector2f pos = fish.anim.sprite.getPosition();
+    float offset = fish.anim.frameW / 2;
+    if (fish.anim.currentframe == 1) return Vector2f(pos.x + offset, pos.y);
     else
         return Vector2f(pos.x - offset, pos.y);
 }
 
 bool enemymouthintersect(setplayer& player, fishes& enemy) {
-    Vector2f mouth = enemyMouthposition(enemy), enemypos = player.sprite.getPosition();
+    Vector2f mouth = enemyMouthposition(enemy), enemypos = player.anim.sprite.getPosition();
         float dist = sqrt((mouth.x - enemypos.x) * (mouth.x - enemypos.x) + (mouth.y - enemypos.y) * (mouth.y - enemypos.y));
-    float  radius = player.frameW / 2;
+    float  radius = player.anim.frameW / 2;
     return dist < radius;
 }
 
 bool isfront(setplayer& player, fishes& enemy) {
-    float dx = enemy.sprite.getPosition().x - player.sprite.getPosition().x;
+    float dx = enemy.anim.sprite.getPosition().x - player.anim.sprite.getPosition().x;
     if (player.dir == 1)
         return dx > 0;
     else
@@ -766,8 +740,8 @@ bool isfront(setplayer& player, fishes& enemy) {
 }
 
 bool enemyisfront(setplayer& player, fishes& enemy) {
-    float dx = enemy.sprite.getPosition().x - player.sprite.getPosition().x;
-    if (player.currentframe == 1)
+    float dx = enemy.anim.sprite.getPosition().x - player.anim.sprite.getPosition().x;
+    if (player.anim.currentframe == 1)
         return dx > 0;
     else
         return      dx < 0;
@@ -969,20 +943,20 @@ int scoring(Shark &shark, float dt) {
 
 void playermovement(float dt, fishes& fish, Sprite& sprite, Texture& t, RenderWindow& window) {
     Vector2f target = window.mapPixelToCoords(Mouse::getPosition(window));
-    Vector2f direction = target - fish.sprite.getPosition();
+    Vector2f direction = target - fish.anim.sprite.getPosition();
 
     float length = sqrt(direction.x * direction.x + direction.y * direction.y);
     if (length > 5) {
         direction /= length;
         if (direction.x > 0) {
-            fish.currentframe = 1;
+            fish.anim.currentframe = 1;
         }
         else if (direction.x < 0) {
-            fish.currentframe = 0;
+            fish.anim.currentframe = 0;
         }
 
-        fish.sprite.setTextureRect(IntRect(fish.currentframe * fish.frameW, 0, fish.frameW, fish.frameH));
-        fish.sprite.move(direction.x * score.speedP * dt, direction.y * score.speedP * dt);
+        fish.anim.sprite.setTextureRect(IntRect(fish.anim.currentframe * fish.anim.frameW, 0, fish.anim.frameW, fish.anim.frameH));
+        fish.anim.sprite.move(direction.x * score.speedP * dt, direction.y * score.speedP * dt);
     }
 }
 
@@ -1001,8 +975,8 @@ void Sorry(setplayer&player, RenderWindow& window, float dt) {
         player.aten = 0;
         player.dead = 0;
         player.draw = 1;
-        if (player.sprite.getPosition().y < 250) {
-            player.sprite.move(0, 350 * dt);
+        if (player.anim.sprite.getPosition().y < 250) {
+            player.anim.sprite.move(0, 350 * dt);
         }
         else {
             sorry.timer = 0;
@@ -1014,10 +988,10 @@ void Sorry(setplayer&player, RenderWindow& window, float dt) {
 
 int draw(setplayer&player, RenderWindow& window, float dt) {
 
-    if (player.draw) window.draw(player.sprite);
-    if (smallFish.draw) window.draw(smallFish.sprite);
-    if (medFish.draw) window.draw(medFish.sprite);
-    if (bigFish.draw) window.draw(bigFish.sprite);
+    if (player.draw) window.draw(player.anim.sprite);
+    if (smallFish.draw) window.draw(smallFish.anim.sprite);
+    if (medFish.draw) window.draw(medFish.anim.sprite);
+    if (bigFish.draw) window.draw(bigFish.anim.sprite);
     window.draw(score.scoretext);
 
     for (int q = 0; q < 7; q++) {
@@ -1032,7 +1006,7 @@ int draw(setplayer&player, RenderWindow& window, float dt) {
 void dead() {
     player.draw = 0;
 
-    player.sprite.setPosition(200, -100);
+    player.anim.sprite.setPosition(200, -100);
 
     if (score.lives > 0) {
         score.lives--;
@@ -1076,7 +1050,7 @@ void ContinueY_N(RenderWindow& window) {
             //player comes in again
             //trials--;                             
             score.lives = 3;
-            player.sprite.setPosition(200, -100);
+            player.anim.sprite.setPosition(200, -100);
             player.draw = 1;
             player.dead = 0;
             player.aten = 0;
@@ -1135,7 +1109,7 @@ void ContinueY_N(RenderWindow& window) {
 void playermovement(float dt, setplayer& isplayer, RenderWindow& window) {
 
     Vector2f target = window.mapPixelToCoords(Mouse::getPosition(window));
-    Vector2f direction = target - isplayer.sprite.getPosition();
+    Vector2f direction = target - isplayer.anim.sprite.getPosition();
 
     float length = sqrt(direction.x * direction.x + direction.y * direction.y);
 
@@ -1143,18 +1117,18 @@ void playermovement(float dt, setplayer& isplayer, RenderWindow& window) {
         direction /= length;
         if (!isplayer.iseating) {
             if (direction.x > 0) {
-                isplayer.currentframe = 2;
+                isplayer.anim.currentframe = 2;
                 isplayer.dir = 1;
             }
             else if (direction.x < 0) {
-                isplayer.currentframe = 0;
+                isplayer.anim.currentframe = 0;
                 isplayer.dir = -1;
             }
         }
 
             // isplayer.sprite.setTextureRect(IntRect(isplayer.currentframe * isplayer.frameW, 0, isplayer.frameW, isplayer.frameH));
 
-            isplayer.sprite.move(direction * score.speedP * dt);
+            isplayer.anim.sprite.move(direction * score.speedP * dt);
     }
 }
 
@@ -1334,6 +1308,7 @@ void Shark::start()
 {
     if(!signalTexture.loadFromFile("Sprites\\unkown 2\\dangerSign.png")) cout << "danger sign is not found"<< endl;
     signal.setTexture(signalTexture);
+    signal.setScale(1.4,1.4);
 
     if(!sharkTexture.loadFromFile("Sprites\\fish sprites\\Barracuda.png")) cout << "shark texture is not found"<< endl;
     shark.setTexture(sharkTexture);
@@ -1342,7 +1317,7 @@ void Shark::start()
     fromRight = true;
 
     if (fromRight) {
-        startPos = Vector2f(1440 - signal.getGlobalBounds().width, 300);
+        startPos = Vector2f(settings.res.x - signal.getGlobalBounds().width, 300);
     }
     else {
         startPos = Vector2f(0, 300);
@@ -1350,7 +1325,7 @@ void Shark::start()
     signal.setPosition(startPos);
 
     if (fromRight) {
-        shark.setPosition(1440 + 200, startPos.y);
+        shark.setPosition(settings.res.x + 200, startPos.y);
     }
     else {
         shark.setPosition(-200, startPos.y);
@@ -1488,7 +1463,7 @@ void Shark::sharkEntrance(float& timer, int& flashCount, float deltaTime, Vector
             shark.setPosition(-200, startPosition.y);
         }
         else {
-            shark.setPosition(1440 + 200, startPosition.y);
+            shark.setPosition(settings.res.x + 250, startPosition.y);
         }
         finished = true;
     }
