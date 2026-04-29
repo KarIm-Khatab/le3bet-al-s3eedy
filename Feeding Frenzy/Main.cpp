@@ -20,6 +20,7 @@ struct Score {
     livelnum = 1,
     currentFrenzy = 0, i = 0; //for counting frenzy word
     float speedP = 800, speedE = 100;
+    short unlocked_levels = 1, completed_levels = unlocked_levels - 1;
 
     int FRENZYi[7]{ 0,0,0,0,0,0,0 };
     float dt, timer = 0;
@@ -456,6 +457,9 @@ struct levelsmap{
     Texture map_texture, tool_tip_texture,ref;
     Sprite map_sprite, tool_tip_sprite,refs;
     Buttons buttons[3];
+    string levels_string[5] = {"1. Sandy Shoal", "2. Angler Ambush","3. Reef Raider", "Click To Select The Level", "Select A Level To Play!"};
+    Text levels_text[5];
+    Font *font;
     short selected = -1;
 
     void load()
@@ -478,20 +482,32 @@ struct levelsmap{
                 for(int h = 0; h < 2; h++)
                 {
                 if(i == 0)
-                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 247, settings.res.y /2 - 315.5f);
+                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 247, settings.res.y /2 - 305.5f);
                 else if(i == 1)
-                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 500, settings.res.y /2 + 15);
+                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 500, settings.res.y /2 + 25);
                 else
-                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 150, settings.res.y /2 + 60);
+                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 150, settings.res.y /2 + 70);
                 }
             }
         }
-        // if (!tool_tip_texture.loadFromFile("Sprites\\menu\\gameMap_text.png")) cout << "tooltip's texture is not found" << endl;
-        // tool_tip_sprite.setTexture(tool_tip_texture);
-        // tool_tip_sprite.setOrigin(tool_tip_sprite.getGlobalBounds().width / 2, tool_tip_sprite.getGlobalBounds().height / 2);
-        // tool_tip_sprite.setPosition(settings.res.x / 2 , settings.res.y / 2 + 360);
-        // //tool_tip_sprite.setScale((settings.res.x / 2) / tool_tip_texture.getSize().x, (settings.res.y * 0.19f) / tool_tip_texture.getSize().y);
-        // tool_tip_sprite.setScale(1.8f,1.8f);
+
+        for (int i =0; i < 5; i++)
+        {
+            levels_text[i].setString(levels_string[i]);
+            levels_text[i].setFont(*font);
+            levels_text[i].setFillColor(Color::White);
+            levels_text[i].setOutlineColor(Color::Black);
+            levels_text[i].setCharacterSize(36);
+            levels_text[i].setOutlineThickness(2);
+            levels_text[i].setOrigin(levels_text[i].getGlobalBounds().width/2,levels_text[i].getGlobalBounds().height/2);
+            levels_text[i].setPosition(settings.res.x / 2 + 20, settings.res.y / 2 + 380);
+            if(i == 3)
+            { 
+                levels_text[i].setPosition(settings.res.x / 2 + 20, settings.res.y / 2 + 320);
+                levels_text[i].setCharacterSize(32);
+            }
+        }
+        levels_text[4].setPosition(settings.res.x / 2 + 20, settings.res.y / 2 + 320);
     }
 
     void handle_movements(Event& event,short &scene)
@@ -506,9 +522,11 @@ struct levelsmap{
             Vector2i mousePixel = Mouse::getPosition(*window);
             Vector2f mouse_position = window->mapPixelToCoords(mousePixel);
             for(int i =0; i < 3; i++)
-            {
+            { //
                 if(buttons[i].buttons_sprite[0][0].getGlobalBounds().contains(mouse_position))
                 {
+                    if(i >= score.unlocked_levels)
+                        break;
                     selected = i;
                     break;
                 }
@@ -522,6 +540,10 @@ struct levelsmap{
             {
                 if(selected == 0)
                     scene = 3;
+                else if(selected == 1)
+                    scene = 6;
+                else 
+                    scene = 8;
             }
         }
     }
@@ -532,7 +554,14 @@ struct levelsmap{
         //window->draw(refs);
         window->draw(map_sprite);
         for(int i =0; i < 3;i++)
-            window->draw(buttons[i].buttons_sprite[0][selected == i ? 1 : 0]);
+            window->draw(buttons[i].buttons_sprite[score.completed_levels == i + 1 ? 1 : 0][selected == i ? 1 : 0]);
+        if(selected >= 0)
+        {
+            window->draw(levels_text[selected]);
+            window->draw(levels_text[3]);
+        }
+        else
+            window->draw(levels_text[4]);
         window->display();
     }
 };
@@ -540,7 +569,7 @@ struct levelsmap{
 struct menuTextBeforeLevels {
 
 	bool leftMouseClicked = false;
-	bool inTextMenuLevel1 = true;
+	bool inTextMenuLevel1 = false;
 	bool inTextMenuLevel2 = false;
 	bool inTextMenuLevel3 = false;
 	bool inTextMenuLevel4 = false;
@@ -641,15 +670,16 @@ int main()
     pauseMenu* pause = nullptr;
     //pause->load();
     levelsmap* map = nullptr;
+    commonAssets assets;
+    assets.load();
     if(!map)
     {
         map = new levelsmap();
+        map->font = &assets.game_font;
         map->window = &window;
         map->load();
     }
     menuTextBeforeLevels texts_before_levels;
-    commonAssets assets;
-    assets.load();
     window_mode(window, settings.controls[2]);
     texts_before_levels.infoFont = &assets.game_font;
     texts_before_levels.textMenuIntialization(window);
@@ -657,7 +687,7 @@ int main()
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 0; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
+    short scene = 2; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
     gameSounds sounds;
@@ -680,14 +710,13 @@ int main()
                 pause->eventHandler(event, scene);
             else if(scene == 2)
                 map->handle_movements(event, scene);
-            else if(scene == 3)
+            else if(scene == 3 || scene == 6 || scene == 8)
                 texts_before_levels.textMenucontrols(window, scene, event);
 
             // if (event.type == Event::KeyPressed)
             // {
             // }
         }
-
 
         switch (scene)
         {
@@ -721,6 +750,8 @@ int main()
             map->draw();
             break;
         case 3: // menu text
+        if(!texts_before_levels.inTextMenuLevel1)
+            texts_before_levels.inTextMenuLevel1 = true;
             window.clear();
             texts_before_levels.textMenuLevel1(window);
             window.display();
@@ -735,10 +766,25 @@ int main()
             mermaid.draw_mermaid(window);
             break;
         case 6:
+            if(!texts_before_levels.inTextMenuLevel2)
+                texts_before_levels.inTextMenuLevel2 = true;
+            window.clear();
+            texts_before_levels.textMenuLevel2(window);
+            window.display();
+            break;
+        case 7:
             shark.update(dt);
             shark.draw(window);
             break;
+        case 8:
+            if(!texts_before_levels.inTextMenuLevel4)
+                texts_before_levels.inTextMenuLevel4 = true;
+            window.clear();
+            texts_before_levels.textMenuLevel4(window);
+            window.display();
+            break;
         }
+
     }
 
 
@@ -3133,36 +3179,31 @@ void menuTextBeforeLevels::textMenucontrols(RenderWindow& window, short &scene, 
 
 
 
-		if (inTextMenuLevel1) {
+		if (scene == 3) {
 
-			inTextMenuLevel1 = false;
             scene = 4;
-			// inTextMenuLevel2 = true;
-			// inTextMenuLevel3 = false;
-			// inTextMenuLevel4 = false;
-
-		}
-
-		else if (inTextMenuLevel2) {
-
-			inTextMenuLevel1 = false;
-			inTextMenuLevel2 = false;
-			inTextMenuLevel3 = true;
-			inTextMenuLevel4 = false;
-
-		}
-
-		else if (inTextMenuLevel3) {
-
-			inTextMenuLevel1 = false;
+            inTextMenuLevel1 = false;
 			inTextMenuLevel2 = false;
 			inTextMenuLevel3 = false;
-			inTextMenuLevel4 = true;
-
 		}
 
-		else if (inTextMenuLevel4) {
+		else if (scene == 6) {
+            scene = 7;
+            inTextMenuLevel1 = false;
+			inTextMenuLevel2 = false;
+			inTextMenuLevel3 = false;
+		}
 
+		// else if (scene == 8) {
+
+        //     scene = 9;
+        //     inTextMenuLevel1 = false;
+		// 	inTextMenuLevel2 = false;
+		// 	inTextMenuLevel3 = false;
+		// }
+
+		else if (scene == 8) {
+            scene = 9;
 			inTextMenuLevel1 = false;
 			inTextMenuLevel2 = false;
 			inTextMenuLevel3 = false;
