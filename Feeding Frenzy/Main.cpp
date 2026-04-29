@@ -179,123 +179,147 @@ struct gameSounds {
     void play_sound();
 };
 
-struct pauseMenu
-{
-    Texture stage, background;
-    Texture resume1, resume2;
-    Texture options1, options2;
-    Texture exit1, exit2;
 
-    Sprite stageSprite, backgroundSprite;
-    Sprite resumeSprite, optionsSprite, exitSprite;
+struct pauseMenu {
+
+    Texture buttons[3][2], stage_Texture, background_Texture;
+    Sprite buttons_sprite[3] , stageSprite, backgroundSprite;
 
     RenderWindow* window = nullptr;
 
     short selectedOption = 0;
+
     bool pause = true;
 
-    void load()
-    {
-        if (!stage.loadFromFile("Sprites/pause menu/stage.png"))
-            cout << "Error loading stage" << endl;
-        if (!background.loadFromFile("Sprites/pause menu/stageBack.png"))
-            cout << "Error loading background" << endl;
-        if (!resume1.loadFromFile("Sprites/pause menu/resume on.png"))
-            cout << "Error loading resume1" << endl;
-        if (!resume2.loadFromFile("Sprites/pause menu/resume off.png"))
-            cout << "Error loading resume2" << endl;
-        if (!options1.loadFromFile("Sprites/pause menu/options on.png"))
-            cout << "Error loading options1" << endl;
-        if (!options2.loadFromFile("Sprites/pause menu/options off.png"))
-            cout << "Error loading options2" << endl;
-        if (!exit1.loadFromFile("Sprites/pause menu/exit on 4.png"))
-            cout << "Error loading exit1" << endl;
-        if (!exit2.loadFromFile("Sprites/pause menu/exit off.png"))
-            cout << "Error loading exit2" << endl;
+    void load();
 
-        stageSprite.setTexture(stage);
-        backgroundSprite.setTexture(background);
-        resumeSprite.setTexture(resume1);
-        optionsSprite.setTexture(options1);
-        exitSprite.setTexture(exit1);
+    void selection(short &scene);
 
-        stageSprite.setPosition(0.f, -370.0f);
-        backgroundSprite.setPosition(0.f, 110.0f);
+    void drawBackground();
 
-        stageSprite.setScale(1.3f, 1.3f);
-        backgroundSprite.setScale(1.3f, 1.3f);
+    void draw();
 
-        resumeSprite.setOrigin(resume1.getSize().x / 2.f, resume1.getSize().y / 2.f);
-        optionsSprite.setOrigin(options1.getSize().x / 2.f, options1.getSize().y / 2.f);
-        exitSprite.setOrigin(exit1.getSize().x / 2.f, exit1.getSize().y / 2.f);
+    void eventHandler(Event& event, short &scene);
 
-        float centerX = 1400.f / 2.f;
-        float startY = 400.f;
-        float spacing = 150.f;
+};
 
-        resumeSprite.setPosition(centerX, startY);
-        optionsSprite.setPosition(centerX, startY + spacing);
-        exitSprite.setPosition(centerX, startY + spacing * 2);
+void pauseMenu::load() {
+
+    float centerX = window->getSize().x / 2;
+    float startY = window->getSize().y / 2 - 125.f;
+    float spacing = 150.f;
+
+    if (!stage_Texture.loadFromFile("Sprites/pause menu/stage.png")) { cout << "Error loading stage" << endl; }
+    if (!background_Texture.loadFromFile("Sprites/pause menu/stageBack.png")) { cout << "Error loading background" << endl; }
+    if (!buttons[0][0].loadFromFile("Sprites/pause menu/resume off.png")) { cout << "Error loading resume1" << endl; }
+    if (!buttons[0][1].loadFromFile("Sprites/pause menu/resume on.png")) { cout << "Error loading resume2" << endl; }
+    if (!buttons[1][0].loadFromFile("Sprites/pause menu/options off.png")) { cout << "Error loading options1" << endl; }
+    if (!buttons[1][1].loadFromFile("Sprites/pause menu/options on.png")) { cout << "Error loading options2" << endl; }
+    if (!buttons[2][0].loadFromFile("Sprites/pause menu/exit off.png")) { cout << "Error loading exit1" << endl; }
+    if (!buttons[2][1].loadFromFile("Sprites/pause menu/exit on 4.png")) { cout << "Error loading exit2" << endl; }
+
+    for (int i = 0; i < 3; i++) {
+            buttons_sprite[i].setTexture(buttons[i][0]);
+            buttons_sprite[i].setOrigin(buttons_sprite[i].getGlobalBounds().width / 2, buttons_sprite[i].getGlobalBounds().height / 2);
+    }
+    stageSprite.setTexture(stage_Texture);
+    backgroundSprite.setTexture(background_Texture);
+
+
+    stageSprite.setPosition(0.f, -370.0f);
+    backgroundSprite.setPosition(0.f, 110.0f);
+    buttons_sprite[0].setPosition(centerX, startY);
+    buttons_sprite[1].setPosition(centerX, startY + spacing);
+    buttons_sprite[2].setPosition(centerX, startY + spacing * 2);
+
+    stageSprite.setScale(1.3f, 1.3f);
+    backgroundSprite.setScale(1.3f, 1.3f);
+
+}
+
+void pauseMenu::selection(short &scene) {
+
+    if (selectedOption == -1) {
+        return;
     }
 
-    void selection()
-    {
-        if (selectedOption == -1) return;
-        if (selectedOption == 0) pause = false;
-        //if (selectedOption == 1) optionsmenu.open = true;
-        if (selectedOption == 2) window->close();
+    if (selectedOption == 0) {
+        pause = false;
     }
 
-    void drawBackground()
-    {
-        window->draw(backgroundSprite);
-        window->draw(stageSprite);
+    if (selectedOption == 2) {
+        scene = 0;
+    }
+}
+
+void pauseMenu::drawBackground() {
+
+    window->draw(backgroundSprite);
+    window->draw(stageSprite);
+}
+
+void pauseMenu::draw() {
+
+    drawBackground();
+
+    buttons_sprite[0].setTexture(selectedOption == 0 ? buttons[0][1] : buttons[0][0]);
+    buttons_sprite[1].setTexture(selectedOption == 1 ? buttons[1][1] : buttons[1][0]);
+    buttons_sprite[2].setTexture(selectedOption == 2 ? buttons[2][1] : buttons[2][0]);
+
+    window->draw(buttons_sprite[0]);
+    window->draw(buttons_sprite[1]);
+    window->draw(buttons_sprite[2]);
+}
+
+void pauseMenu::eventHandler(Event& event, short &scene) {
+
+    if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape) {
+        pause = !pause;
     }
 
-    void draw()
-    {
-        drawBackground();
-        resumeSprite.setTexture(selectedOption == 0 ? resume1 : resume2);
-        optionsSprite.setTexture(selectedOption == 1 ? options1 : options2);
-        exitSprite.setTexture(selectedOption == 2 ? exit1 : exit2);
-
-
-        window->draw(resumeSprite);
-        window->draw(optionsSprite);
-        window->draw(exitSprite);
+    if (!pause) {
+        return;
     }
 
-    void eventHandler(Event& event)
-    {
-        if (event.type == Event::KeyPressed &&
-            event.key.code == Keyboard::Escape)
-            pause = !pause;
+    if (event.type == Event::KeyPressed) {
 
-        if (!pause) return;
+        if (event.key.code == Keyboard::Up) {
+            selectedOption--;
+        }
 
-        if (event.type == Event::KeyPressed) 
-        {
-        if (event.key.code == Keyboard::Up)   selectedOption--;
-        if (event.key.code == Keyboard::Down) selectedOption++;
+        if (event.key.code == Keyboard::Down) {
+            selectedOption++;
+        }
 
         selectedOption = (selectedOption + 3) % 3;
 
-        if (event.key.code == Keyboard::Return)  selection();
+        if (event.key.code == Keyboard::Return) {
+            selection(scene);
+        }
+    }
+
+    if (event.type == Event::MouseMoved || event.type == Event::MouseButtonReleased) {
+
+        Vector2f worldPos = window->mapPixelToCoords(Mouse::getPosition(*window));
+
+        if (buttons_sprite[0].getGlobalBounds().contains(worldPos)) {
+            selectedOption = 0;
         }
 
-        if (event.type == Event::MouseMoved ||
-            event.type == Event::MouseButtonReleased)
-        {
-            Vector2f worldPos = window->mapPixelToCoords(Mouse::getPosition(*window));
+        else if (buttons_sprite[1].getGlobalBounds().contains(worldPos)) {
+            selectedOption = 1;
+        }
 
-            if (resumeSprite.getGlobalBounds().contains(worldPos))       selectedOption = 0;
-            else if (optionsSprite.getGlobalBounds().contains(worldPos)) selectedOption = 1;
-            else if (exitSprite.getGlobalBounds().contains(worldPos))    selectedOption = 2;
-            else selectedOption = -1;
+        else if (buttons_sprite[2].getGlobalBounds().contains(worldPos)) {
+            selectedOption = 2;
+        }
 
-            if (event.type == Event::MouseButtonReleased &&
-                event.mouseButton.button == Mouse::Left)
-                selection();
+        else {
+            selectedOption = -1;
+        }
+
+        if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left) {
+            selection(scene);
         }
     }
 };
@@ -360,42 +384,6 @@ struct helpAndOptions {
     void draw_credits();
 };
 
-struct pause_menu {
-    Texture buttons[3][2];
-    Sprite buttons_sprite[3][2];
-
-    void load()
-    {
-        if(!buttons[0][0].loadFromFile("")) cout << ""<<endl;
-        if(!buttons[0][1].loadFromFile("")) cout << ""<<endl;
-        if(!buttons[1][0].loadFromFile("")) cout << ""<<endl;
-        if(!buttons[1][1].loadFromFile("")) cout << ""<<endl;
-        if(!buttons[2][0].loadFromFile("")) cout << ""<<endl;
-        if(!buttons[2][1].loadFromFile("")) cout << ""<<endl;
-
-        for(int i = 0;i < 3; i++)
-        {
-            for(int j =0; j < 2; j++)
-            {
-                buttons_sprite[i][j].setTexture(buttons[i][j]);
-                buttons_sprite[i][j].setOrigin(buttons_sprite[i][j].getGlobalBounds().width/2,buttons_sprite[i][j].getGlobalBounds().height/2);
-            }
-        }
-    }
-};
-
-struct Ingame_windows {
-    void load()
-    {
-
-    }
-
-    void draw_first_tip(RenderWindow& window, Sprite& background, Sprite& rock)
-    {
-
-    }
-};
-
 struct mainMenu {
     RenderWindow* window = nullptr;
     gameSounds *sound;
@@ -438,6 +426,161 @@ struct mainMenu {
     void draw_achievements_menu();
 
     void draw_help_menu();
+};
+
+struct levelsmap{
+
+    struct Buttons{
+        Texture buttons_text[2][2];
+        Sprite buttons_sprite[2][2];
+
+        // 0,0 -> msh selected 3ady | 0,1 selected | 1,0 done | 1,1 done w selected
+        void load()
+        {
+            if (!buttons_text[0][0].loadFromFile("Sprites/menu/gameMap_mapPinOffLg.png")) cout << "Error loading refs" << endl;
+            if (!buttons_text[0][1].loadFromFile("Sprites/menu/map_menu_hoov.png")) cout << "Error loading refs" << endl;
+            if (!buttons_text[1][0].loadFromFile("Sprites/menu/gameMap_noExport.png")) cout << "Error loading refs" << endl;
+            if(!buttons_text[1][1].loadFromFile("Sprites/menu/gameMap_mapPinOnLg.png")) cout << "Error loading refs" << endl;
+
+            for(int i =0; i < 2; i++)
+                for(int j = 0; j < 2; j++)
+                {
+                    buttons_sprite[i][j].setTexture(buttons_text[i][j]);
+                    buttons_sprite[i][j].setOrigin(buttons_sprite[i][j].getGlobalBounds().width/2,buttons_sprite[i][j].getGlobalBounds().height/2);
+                    buttons_sprite[i][j].setScale(1.4f,1.4f);
+                }
+        }
+    };
+
+    RenderWindow *window = nullptr;
+    Texture map_texture, tool_tip_texture,ref;
+    Sprite map_sprite, tool_tip_sprite,refs;
+    Buttons buttons[3];
+    short selected = -1;
+
+    void load()
+    {
+        if (!ref.loadFromFile("Sprites/menu/mapref.png")) cout << "Error loading refs" << endl;
+        refs.setTexture(ref);
+        refs.setOrigin(refs.getGlobalBounds().width/2,refs.getGlobalBounds().height/2);
+        refs.setPosition(settings.res.x/2,settings.res.y/2);
+
+        if (!map_texture.loadFromFile("Sprites/menu/mpa-menu1.png")) cout << "Error loading map" << endl;
+        map_sprite.setTexture(map_texture);
+        map_sprite.setOrigin(map_sprite.getGlobalBounds().width/2,map_sprite.getGlobalBounds().height/2);
+        map_sprite.setPosition(settings.res.x/2,settings.res.y/2);
+
+        for(int i =0; i < 3 ;i++) 
+        {
+            buttons[i].load();
+            for(int j = 0; j < 2; j++)
+            {
+                for(int h = 0; h < 2; h++)
+                {
+                if(i == 0)
+                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 247, settings.res.y /2 - 315.5f);
+                else if(i == 1)
+                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 500, settings.res.y /2 + 15);
+                else
+                    buttons[i].buttons_sprite[j][h].setPosition(settings.res.x/2 - 150, settings.res.y /2 + 60);
+                }
+            }
+        }
+        // if (!tool_tip_texture.loadFromFile("Sprites\\menu\\gameMap_text.png")) cout << "tooltip's texture is not found" << endl;
+        // tool_tip_sprite.setTexture(tool_tip_texture);
+        // tool_tip_sprite.setOrigin(tool_tip_sprite.getGlobalBounds().width / 2, tool_tip_sprite.getGlobalBounds().height / 2);
+        // tool_tip_sprite.setPosition(settings.res.x / 2 , settings.res.y / 2 + 360);
+        // //tool_tip_sprite.setScale((settings.res.x / 2) / tool_tip_texture.getSize().x, (settings.res.y * 0.19f) / tool_tip_texture.getSize().y);
+        // tool_tip_sprite.setScale(1.8f,1.8f);
+    }
+
+    void handle_movements(Event& event,short &scene)
+    {
+        if (event.type == Event::KeyPressed)
+        {
+            if (event.key.code == Keyboard::Escape)
+                scene = 0;
+        }
+        if (event.type == Event::MouseMoved)
+        {
+            Vector2i mousePixel = Mouse::getPosition(*window);
+            Vector2f mouse_position = window->mapPixelToCoords(mousePixel);
+            for(int i =0; i < 3; i++)
+            {
+                if(buttons[i].buttons_sprite[0][0].getGlobalBounds().contains(mouse_position))
+                {
+                    selected = i;
+                    break;
+                }
+                else
+                    selected = -1;
+            }
+        }
+        if (event.type == Event::MouseButtonPressed)
+        {
+            if(event.mouseButton.button == Mouse::Left)
+            {
+                if(selected == 0)
+                    scene = 3;
+            }
+        }
+    }
+
+    void draw()
+    {
+        window->clear();
+        //window->draw(refs);
+        window->draw(map_sprite);
+        for(int i =0; i < 3;i++)
+            window->draw(buttons[i].buttons_sprite[0][selected == i ? 1 : 0]);
+        window->display();
+    }
+};
+
+struct menuTextBeforeLevels {
+
+	bool leftMouseClicked = false;
+	bool inTextMenuLevel1 = true;
+	bool inTextMenuLevel2 = false;
+	bool inTextMenuLevel3 = false;
+	bool inTextMenuLevel4 = false;
+	bool isOnContinue = false;
+	bool isOnQuit = false;
+
+    
+
+	Texture textMenuBorderTexture, textMenuBackgroundTexture, longButtonOffTexture, longButtonOnTexture, shortButtonOffTexture, shortButtonOnTexture, continueTextOffTexture, continueTextOnTexture, quitTextOffTexture, quitTextOnTexture;
+	Texture borisTexture, orangeFishTexture, blueFishTexture, brownFishTexture, barracudaTexture, humpheadTexture, eddieTexture, johnDorryTexture, orvilleTexture, mineTexture;
+
+	Sprite textMenuBorderSprite, textMenuBackgroundSprite, longButtonOffSprite, longButtonOnSprite, shortButtonOffSprite, shortButtonOnSprite, continueTextOffSprite, continueTextOnSprite, quitTextOffSprite, quitTextOnSprite;
+	Sprite borisSprite, orangeFishSprite, blueFishSprite, brownFishSprite, barracudaSprite, humpheadSprite, eddieSprite, johnDorrySprite, orvilleSprite, mineSprite;
+
+	Font *infoFont;
+
+	Text level1Text, level1BorisText1, level1BorisText2, level1BorisText3, level1BorisText4, level1BorisText5, level1BorisText6;
+	Text howToPlayTitle, howToPlayText1, howToPlayText2, howToPlayText3, howToPlayText4, tip1Text;
+
+	Text level2Text, level2BarracudaTitle, level2BarracudaText1, level2BarracudaText2, level2BarracudaText3, level2BarracudaText4, level2BarracudaText5;
+	Text level2HumpheadText1, level2HumpheadText2, level2HumpheadText3, level2HumpheadText4, tip2Text;
+
+	Text level3Text, level3EddieText1, level3EddieText2, level3EddieText3, level3EddieText4;
+	Text level3JohnDorryText1, level3JohnDorryText2, level3JohnDorryText3, level3JohnDorryText4, level3JohnDorryText5, level3JohnDorryText6, level3JohnDorryText7, tip3Text;
+
+	Text level4Text, level4OrvilleText1, level4OrvilleText2, level4OrvilleText3, level4OrvilleText4, level4OrvilleText5, level4OrvilleText6, tip4Text;
+	Text level4MineTitle, level4MineText1, level4MineText2, level4MineText3;
+
+	void textMenuIntialization(RenderWindow& window);
+
+	void textMenuLevel1(RenderWindow& window);
+
+	void textMenuLevel2(RenderWindow& window);
+
+	void textMenuLevel3(RenderWindow& window);
+
+	void textMenuLevel4(RenderWindow& window);
+
+	void textMenucontrols(RenderWindow& window, short &scene, Event& event);
+
 };
 
 const int MAX_STARS = 30;
@@ -497,7 +640,19 @@ int main()
     RenderWindow window;
     pauseMenu* pause = nullptr;
     //pause->load();
+    levelsmap* map = nullptr;
+    if(!map)
+    {
+        map = new levelsmap();
+        map->window = &window;
+        map->load();
+    }
+    menuTextBeforeLevels texts_before_levels;
+    commonAssets assets;
+    assets.load();
     window_mode(window, settings.controls[2]);
+    texts_before_levels.infoFont = &assets.game_font;
+    texts_before_levels.textMenuIntialization(window);
     Event event;
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
@@ -505,9 +660,7 @@ int main()
     short scene = 0; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
-    commonAssets assets;
     gameSounds sounds;
-    assets.load();
     sounds.load();
     //pause->window = &window;
     mermaid.start_mermaid();
@@ -520,35 +673,19 @@ int main()
             if (event.type == Event::Closed)
                 window.close();
             if(scene == 0 && menu)
-                menu->handle_movements(event, scene );
+                menu->handle_movements(event, scene);
             else if(scene == 1 && help)
                 help->handle_movements(event, scene);
             else if(pause && pause->pause)
-                pause->eventHandler(event);
+                pause->eventHandler(event, scene);
+            else if(scene == 2)
+                map->handle_movements(event, scene);
+            else if(scene == 3)
+                texts_before_levels.textMenucontrols(window, scene, event);
 
-            if (event.type == Event::KeyPressed)
-            {
-                if (event.key.code == Keyboard::Space)
-                {
-                    if (!shark.isTurning && !shark.eating)
-                    {
-                        shark.isTurning = true;
-                        shark.turnTimer = 0;
-                        shark.sharkFrame = 0;
-                    }
-                }
-
-                if (event.key.code == Keyboard::G)
-                {
-                    if (!shark.eating)
-                    {
-                        shark.eating = true;
-                        shark.eatFrame = 0;
-                        shark.eatTimer = 0;
-                    }
-                }
-            
-        }
+            // if (event.type == Event::KeyPressed)
+            // {
+            // }
         }
 
 
@@ -580,18 +717,26 @@ int main()
             }
             help->update_menu_scenes();
             break;
-        case 2:
+        case 2: // map
+            map->draw();
+            break;
+        case 3: // menu text
+            window.clear();
+            texts_before_levels.textMenuLevel1(window);
+            window.display();
+            break;
+        case 4: // level 1
+            // window.clear();
+            // pause->draw();
+            // window.display();
+        //     break;
+        // case 5: 
             mermaid.update_mermaid(dt);
             mermaid.draw_mermaid(window);
             break;
-        case 3:
+        case 6:
             shark.update(dt);
             shark.draw(window);
-            break;
-        case 4:
-            window.clear();
-            pause->draw();
-            window.display();
             break;
         }
     }
@@ -1804,6 +1949,8 @@ switch(menu_scene)
                 {
                     if(i == 3)
                         menu_scene = 1, selected = -1;
+                    else if(selected == 0)
+                        scene = 2;
                     else if(selected == i)
                         menu_scene = i + 8, selected = -1; 
                 }
@@ -2278,4 +2425,759 @@ void window_mode(RenderWindow &window, bool fullscreen) {
         window.create(VideoMode(settings.res.x, settings.res.y), "Feeding Frenzy 2 - Shipwrech Showdown", Style::Fullscreen);
     else
         window.create(VideoMode(settings.res.x, settings.res.y), "Feeding Frenzy 2 - Shipwrech Showdown");
+}
+
+void menuTextBeforeLevels::textMenuIntialization(RenderWindow& window) {
+
+	float windowWidth = window.getSize().x;
+	float windowHeight = window.getSize().y;
+
+	//The scale and position of everything is dependant on the window size
+
+	float widthChange = windowWidth / 1080.f;
+	float heightChange = windowHeight / 600.f;
+
+	textMenuBorderTexture.loadFromFile("Sprites\\Text screen\\shell_stage.png");
+	textMenuBackgroundTexture.loadFromFile("Sprites\\Text screen\\shell_stageBack.png");
+	longButtonOffTexture.loadFromFile("Sprites\\Text screen\\longButtonOff.png");
+	longButtonOnTexture.loadFromFile("Sprites\\Text screen\\longButtonOn.png");
+	shortButtonOffTexture.loadFromFile("Sprites\\Text screen\\shortButtonOff.png");
+	shortButtonOnTexture.loadFromFile("Sprites\\Text screen\\shortButtonOn.png");
+	continueTextOffTexture.loadFromFile("Sprites\\Text screen\\continueTextOff.png");
+	continueTextOnTexture.loadFromFile("Sprites\\Text screen\\continueTextOn.png");
+	quitTextOffTexture.loadFromFile("Sprites\\Text screen\\quitTextOff.png");
+	quitTextOnTexture.loadFromFile("Sprites\\Text screen\\quitTextOn.png");
+	borisTexture.loadFromFile("Sprites\\Text screen\\boris.png");
+	orangeFishTexture.loadFromFile("Sprites\\Text screen\\orangeFish.png");
+	blueFishTexture.loadFromFile("Sprites\\Text screen\\blueFish.png");
+	brownFishTexture.loadFromFile("Sprites\\Text screen\\brownFish.png");
+	barracudaTexture.loadFromFile("Sprites\\Text screen\\barracuda.png");
+	humpheadTexture.loadFromFile("Sprites\\Text screen\\humphead.png");
+	eddieTexture.loadFromFile("Sprites\\Text screen\\eddie.png");
+	johnDorryTexture.loadFromFile("Sprites\\Text screen\\johnDory.png");
+	orvilleTexture.loadFromFile("Sprites\\Text screen\\orville.png");
+	mineTexture.loadFromFile("Sprites\\Text screen\\mine.png");
+
+	textMenuBorderSprite.setTexture(textMenuBorderTexture);
+	textMenuBorderSprite.setOrigin(textMenuBorderSprite.getGlobalBounds().width / 2.f, textMenuBorderSprite.getGlobalBounds().height / 2.f);
+	textMenuBorderSprite.setScale(windowWidth / textMenuBorderSprite.getGlobalBounds().width, windowHeight / textMenuBorderSprite.getGlobalBounds().height);
+	textMenuBorderSprite.setPosition(windowWidth / 2.f, windowHeight / 2.f);
+
+	textMenuBackgroundSprite.setTexture(textMenuBackgroundTexture);
+	textMenuBackgroundSprite.setOrigin(textMenuBackgroundSprite.getGlobalBounds().width / 2.f, textMenuBackgroundSprite.getGlobalBounds().height / 2.f);
+	textMenuBackgroundSprite.setScale(windowWidth / textMenuBackgroundSprite.getGlobalBounds().width, windowHeight / textMenuBackgroundSprite.getGlobalBounds().height);
+	textMenuBackgroundSprite.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+
+	longButtonOffSprite.setTexture(longButtonOffTexture);
+	longButtonOffSprite.setOrigin(longButtonOffSprite.getGlobalBounds().width / 2.f, longButtonOffSprite.getGlobalBounds().height / 2.f);
+	longButtonOffSprite.setScale(1.2 * widthChange, 1.2 * heightChange);
+	longButtonOffSprite.setPosition(windowWidth / 2.f, windowHeight - longButtonOffSprite.getGlobalBounds().height / 2.f - (50 * heightChange));
+
+	longButtonOnSprite.setTexture(longButtonOnTexture);
+	longButtonOnSprite.setOrigin(longButtonOnSprite.getGlobalBounds().width / 2.f, longButtonOnSprite.getGlobalBounds().height / 2.f);
+	longButtonOnSprite.setScale(longButtonOffSprite.getScale());
+	longButtonOnSprite.setPosition(longButtonOffSprite.getPosition());
+
+	shortButtonOffSprite.setTexture(shortButtonOffTexture);
+	shortButtonOffSprite.setOrigin(shortButtonOffSprite.getGlobalBounds().width / 2.f, shortButtonOffSprite.getGlobalBounds().height / 2.f);
+	shortButtonOffSprite.setScale(longButtonOffSprite.getScale());
+	shortButtonOffSprite.setPosition(longButtonOffSprite.getPosition().x + longButtonOffSprite.getGlobalBounds().width / 2.f + shortButtonOffSprite.getGlobalBounds().width / 2.f, longButtonOffSprite.getPosition().y);
+
+	shortButtonOnSprite.setTexture(shortButtonOnTexture);
+	shortButtonOnSprite.setOrigin(shortButtonOnSprite.getGlobalBounds().width / 2.f, shortButtonOnSprite.getGlobalBounds().height / 2.f);
+	shortButtonOnSprite.setScale(shortButtonOffSprite.getScale());
+	shortButtonOnSprite.setPosition(shortButtonOffSprite.getPosition());
+
+	continueTextOffSprite.setTexture(continueTextOffTexture);
+	continueTextOffSprite.setOrigin(continueTextOffSprite.getGlobalBounds().width / 2.f, continueTextOffSprite.getGlobalBounds().height / 2.f);
+	continueTextOffSprite.setScale(0.3 * widthChange, 0.3 * heightChange);
+	continueTextOffSprite.setPosition(longButtonOffSprite.getPosition());
+
+	continueTextOnSprite.setTexture(continueTextOnTexture);
+	continueTextOnSprite.setOrigin(continueTextOnSprite.getGlobalBounds().width / 2.f, continueTextOnSprite.getGlobalBounds().height / 2.f);
+	continueTextOnSprite.setScale(0.25 * widthChange, 0.25 * heightChange);
+	continueTextOnSprite.setPosition(longButtonOnSprite.getPosition());
+
+	quitTextOffSprite.setTexture(quitTextOffTexture);
+	quitTextOffSprite.setOrigin(quitTextOffSprite.getGlobalBounds().width / 2.f, quitTextOffSprite.getGlobalBounds().height / 2.f);
+	quitTextOffSprite.setScale(continueTextOffSprite.getScale());
+	quitTextOffSprite.setPosition(shortButtonOffSprite.getPosition());
+
+	quitTextOnSprite.setTexture(quitTextOnTexture);
+	quitTextOnSprite.setOrigin(quitTextOnSprite.getGlobalBounds().width / 2.f, quitTextOnSprite.getGlobalBounds().height / 2.f);
+	quitTextOnSprite.setScale(continueTextOnSprite.getScale());
+	quitTextOnSprite.setPosition(shortButtonOnSprite.getPosition());
+
+
+
+	//infoFont.loadFromFile("Sprites\\Text screen\\font.otf");
+
+	level1Text.setFont(*infoFont);
+	level1Text.setString("Level 1");
+	level1Text.setCharacterSize(50 * widthChange);
+	level1Text.setOrigin(level1Text.getGlobalBounds().width / 2.f, level1Text.getGlobalBounds().height / 2.f);
+	level1Text.setFillColor(Color(222, 199, 75));
+	level1Text.setOutlineColor(Color(129, 97, 45));
+	level1Text.setOutlineThickness(3 * widthChange);
+	level1Text.setPosition(windowWidth / 2.f - (30 * widthChange), windowHeight / 8.f - (30 * heightChange));
+
+	level2Text.setFont(*infoFont);
+	level2Text.setString("Level 2");
+	level2Text.setCharacterSize(50 * widthChange);
+	level2Text.setOrigin(level2Text.getGlobalBounds().width / 2.f, level2Text.getGlobalBounds().height / 2.f);
+	level2Text.setFillColor(Color(222, 199, 75));
+	level2Text.setOutlineColor(Color(129, 97, 45));
+	level2Text.setOutlineThickness(3 * widthChange);
+	level2Text.setPosition(level1Text.getPosition());
+
+	level3Text.setFont(*infoFont);
+	level3Text.setString("Level 3");
+	level3Text.setCharacterSize(50 * widthChange);
+	level3Text.setOrigin(level3Text.getGlobalBounds().width / 2.f, level3Text.getGlobalBounds().height / 2.f);
+	level3Text.setFillColor(Color(222, 199, 75));
+	level3Text.setOutlineColor(Color(129, 97, 45));
+	level3Text.setOutlineThickness(3 * widthChange);
+	level3Text.setPosition(level1Text.getPosition());
+
+	level4Text.setFont(*infoFont);
+	level4Text.setString("Level 4");
+	level4Text.setCharacterSize(50 * widthChange);
+	level4Text.setOrigin(level4Text.getGlobalBounds().width / 2.f, level4Text.getGlobalBounds().height / 2.f);
+	level4Text.setFillColor(Color(222, 199, 75));
+	level4Text.setOutlineColor(Color(129, 97, 45));
+	level4Text.setOutlineThickness(3 * widthChange);
+	level4Text.setPosition(level1Text.getPosition());
+
+	level1BorisText1.setFont(*infoFont);
+	level1BorisText1.setString("Meet Boris the Butterfly Fish. Boris lives in");
+	level1BorisText1.setCharacterSize(15 * widthChange);
+	level1BorisText1.setFillColor(Color::White);
+	level1BorisText1.setPosition(300 * widthChange, 120 * heightChange);
+
+	level1BorisText2.setFont(*infoFont);
+	level1BorisText2.setString("the warm waters of Sandy Shoal - a");
+	level1BorisText2.setCharacterSize(15 * widthChange);
+	level1BorisText2.setFillColor(Color::White);
+	level1BorisText2.setPosition(level1BorisText1.getPosition().x, level1BorisText1.getPosition().y + level1BorisText2.getGlobalBounds().height + (5 * heightChange));
+
+	level1BorisText3.setFont(*infoFont);
+	level1BorisText3.setString("beautiful area of the Frenzy Coast. Enjoy");
+	level1BorisText3.setCharacterSize(15 * widthChange);
+	level1BorisText3.setFillColor(Color::White);
+	level1BorisText3.setPosition(level1BorisText1.getPosition().x, level1BorisText2.getPosition().y + level1BorisText3.getGlobalBounds().height + (5 * heightChange));
+
+	level1BorisText4.setFont(*infoFont);
+	level1BorisText4.setString("the sights, but don't get too comfortable...");
+	level1BorisText4.setCharacterSize(15 * widthChange);
+	level1BorisText4.setFillColor(Color::White);
+	level1BorisText4.setPosition(level1BorisText1.getPosition().x, level1BorisText3.getPosition().y + level1BorisText4.getGlobalBounds().height + (5 * heightChange));
+
+	level1BorisText5.setFont(*infoFont);
+	level1BorisText5.setString("A fish needs his lunch, and it's a");
+	level1BorisText5.setCharacterSize(15 * widthChange);
+	level1BorisText5.setFillColor(Color::White);
+	level1BorisText5.setPosition(level1BorisText1.getPosition().x, level1BorisText4.getPosition().y + level1BorisText5.getGlobalBounds().height + (5 * heightChange));
+
+	level1BorisText6.setFont(*infoFont);
+	level1BorisText6.setString("fish-eat-fish world out there!");
+	level1BorisText6.setCharacterSize(15 * widthChange);
+	level1BorisText6.setFillColor(Color::White);
+	level1BorisText6.setPosition(level1BorisText1.getPosition().x, level1BorisText5.getPosition().y + level1BorisText6.getGlobalBounds().height + (5 * heightChange));
+
+	howToPlayTitle.setFont(*infoFont);
+	howToPlayTitle.setString("How to play:");
+	howToPlayTitle.setCharacterSize(18 * widthChange);
+	howToPlayTitle.setFillColor(Color(184, 179, 87));
+	howToPlayTitle.setPosition(level1BorisText1.getPosition().x - (10 + widthChange), level1BorisText6.getPosition().y + howToPlayTitle.getGlobalBounds().height + (5 * heightChange));
+
+	howToPlayText1.setFont(*infoFont);
+	howToPlayText1.setString("- Use your mouse to control Boris.");
+	howToPlayText1.setCharacterSize(15 * widthChange);
+	howToPlayText1.setFillColor(Color::White);
+	howToPlayText1.setPosition(level1BorisText1.getPosition().x, howToPlayTitle.getPosition().y + howToPlayText1.getGlobalBounds().height + (5 * heightChange));
+
+	howToPlayText2.setFont(*infoFont);
+	howToPlayText2.setString("- Eat fish that are smaller than you.");
+	howToPlayText2.setCharacterSize(15 * widthChange);
+	howToPlayText2.setFillColor(Color::White);
+	howToPlayText2.setPosition(level1BorisText1.getPosition().x, howToPlayText1.getPosition().y + howToPlayText2.getGlobalBounds().height + (5 * heightChange));
+
+	howToPlayText3.setFont(*infoFont);
+	howToPlayText3.setString("- Avoid anything that's larger than you.");
+	howToPlayText3.setCharacterSize(15 * widthChange);
+	howToPlayText3.setFillColor(Color::White);
+	howToPlayText3.setPosition(level1BorisText1.getPosition().x, howToPlayText2.getPosition().y + howToPlayText3.getGlobalBounds().height + (5 * heightChange));
+
+	howToPlayText4.setFont(*infoFont);
+	howToPlayText4.setString("- Eat enough fish and you'll grow bigger!");
+	howToPlayText4.setCharacterSize(15 * widthChange);
+	howToPlayText4.setFillColor(Color::White);
+	howToPlayText4.setPosition(level1BorisText1.getPosition().x, howToPlayText3.getPosition().y + howToPlayText4.getGlobalBounds().height + (5 * heightChange));
+
+	borisSprite.setTexture(borisTexture);
+	borisSprite.setOrigin(borisSprite.getGlobalBounds().width / 2.f, borisSprite.getGlobalBounds().height / 2.f);
+	borisSprite.setScale(0.5 * widthChange, 0.5 * heightChange);
+	borisSprite.setPosition(level1BorisText5.getPosition().x + level1BorisText1.getGlobalBounds().width + borisSprite.getGlobalBounds().width / 2.f + (50 * widthChange), level1BorisText4.getPosition().y);
+
+	tip1Text.setFont(*infoFont);
+	tip1Text.setString("Tip: Start with Minnows - they're the easiest prey.");
+	tip1Text.setCharacterSize(13 * widthChange);
+	tip1Text.setOrigin(tip1Text.getGlobalBounds().width / 2.f, tip1Text.getGlobalBounds().height / 2.f);
+	tip1Text.setFillColor(Color::White);
+	tip1Text.setPosition(window.getSize().x / 2.f, longButtonOffSprite.getPosition().y - longButtonOffSprite.getGlobalBounds().height / 2.f - tip1Text.getGlobalBounds().height / 2.f);
+
+	orangeFishSprite.setTexture(orangeFishTexture);
+	orangeFishSprite.setOrigin(orangeFishSprite.getGlobalBounds().width / 2.f, orangeFishSprite.getGlobalBounds().height / 2.f);
+	orangeFishSprite.setScale(-0.45 * widthChange, 0.45 * heightChange);
+	orangeFishSprite.setPosition(tip1Text.getPosition().x - tip1Text.getGlobalBounds().width / 4.f, tip1Text.getPosition().y - tip1Text.getGlobalBounds().height - orangeFishSprite.getGlobalBounds().height / 2.f + howToPlayText4.getGlobalBounds().height);
+
+	blueFishSprite.setTexture(blueFishTexture);
+	blueFishSprite.setOrigin(blueFishSprite.getGlobalBounds().width / 2.f, blueFishSprite.getGlobalBounds().height / 2.f);
+	blueFishSprite.setScale(-0.25 * widthChange, 0.25 * heightChange);
+	blueFishSprite.setPosition(orangeFishSprite.getPosition().x + orangeFishSprite.getGlobalBounds().width / 2.f + blueFishSprite.getGlobalBounds().width / 2.f, orangeFishSprite.getPosition().y);
+
+	brownFishSprite.setTexture(brownFishTexture);
+	brownFishSprite.setOrigin(brownFishSprite.getGlobalBounds().width / 2.f, brownFishSprite.getGlobalBounds().height / 2.f);
+	brownFishSprite.setScale(-0.5 * widthChange, 0.5 * heightChange);
+	brownFishSprite.setPosition(blueFishSprite.getPosition().x + blueFishSprite.getGlobalBounds().width / 2.f + brownFishSprite.getGlobalBounds().width, orangeFishSprite.getPosition().y + (15 * heightChange));
+
+	level2BarracudaTitle.setFont(*infoFont);
+	level2BarracudaTitle.setString("WARNING!");
+	level2BarracudaTitle.setCharacterSize(18 * widthChange);
+	level2BarracudaTitle.setFillColor(Color(184, 179, 87));
+	level2BarracudaTitle.setPosition(howToPlayText1.getPosition().x, level1BorisText1.getPosition().y);
+
+	level2BarracudaText1.setFont(*infoFont);
+	level2BarracudaText1.setString("A BARRACUDA has been spotted cruising the Reef. Watch");
+	level2BarracudaText1.setCharacterSize(15 * widthChange);
+	level2BarracudaText1.setFillColor(Color::White);
+	level2BarracudaText1.setPosition(level1BorisText2.getPosition().x, level2BarracudaTitle.getPosition().y + level2BarracudaTitle.getGlobalBounds().height + (10 * heightChange));
+
+	level2BarracudaText2.setFont(*infoFont);
+	level2BarracudaText2.setString("for warning signs, and keep away from his gaping maw! If");
+	level2BarracudaText2.setCharacterSize(15 * widthChange);
+	level2BarracudaText2.setFillColor(Color::White);
+	level2BarracudaText2.setPosition(level1BorisText3.getPosition().x, level2BarracudaText1.getPosition().y + level2BarracudaText1.getGlobalBounds().height + (5 * heightChange));
+
+	level2BarracudaText3.setFont(*infoFont);
+	level2BarracudaText3.setString("you are feeling really lucky, try biting his tail. Bite it 4 times");
+	level2BarracudaText3.setCharacterSize(15 * widthChange);
+	level2BarracudaText3.setFillColor(Color::White);
+	level2BarracudaText3.setPosition(level1BorisText3.getPosition().x, level2BarracudaText2.getPosition().y + level2BarracudaText2.getGlobalBounds().height + (5 * heightChange));
+
+	level2BarracudaText4.setFont(*infoFont);
+	level2BarracudaText4.setString("and you're in for a special surprise...");
+	level2BarracudaText4.setCharacterSize(15 * widthChange);
+	level2BarracudaText4.setFillColor(Color::White);
+	level2BarracudaText4.setPosition(level1BorisText4.getPosition().x, level2BarracudaText3.getPosition().y + level2BarracudaText3.getGlobalBounds().height + (5 * heightChange));
+
+	level2BarracudaText5.setFont(*infoFont);
+	level2BarracudaText5.setString("if you survive that long");
+	level2BarracudaText5.setCharacterSize(15 * widthChange);
+	level2BarracudaText5.setFillColor(Color::White);
+	level2BarracudaText5.setPosition(level1BorisText5.getPosition().x, level2BarracudaText4.getPosition().y + level2BarracudaText4.getGlobalBounds().height + (5 * heightChange));
+
+	barracudaSprite.setTexture(barracudaTexture);
+	barracudaSprite.setOrigin(barracudaSprite.getGlobalBounds().width / 2.f, barracudaSprite.getGlobalBounds().height / 2.f);
+	barracudaSprite.setScale(widthChange, heightChange);
+	barracudaSprite.setPosition(level2BarracudaText4.getPosition().x + level2BarracudaText4.getGlobalBounds().width + barracudaSprite.getGlobalBounds().width / 2.f - (20 * widthChange), level2BarracudaText5.getPosition().y + (40 * heightChange));
+
+	level2HumpheadText1.setFont(*infoFont);
+	level2HumpheadText1.setString("What's going on?");
+	level2HumpheadText1.setCharacterSize(15 * widthChange);
+	level2HumpheadText1.setFillColor(Color::White);
+	level2HumpheadText1.setPosition(400 * widthChange, level2BarracudaText5.getPosition().y + (90 * heightChange));
+
+	level2HumpheadText2.setFont(*infoFont);
+	level2HumpheadText2.setString("These Humphead Wrasse don't usually");
+	level2HumpheadText2.setCharacterSize(15 * widthChange);
+	level2HumpheadText2.setFillColor(Color::White);
+	level2HumpheadText2.setPosition(level2HumpheadText1.getPosition().x, level2HumpheadText1.getPosition().y + level2HumpheadText1.getGlobalBounds().height + (5 * heightChange));
+
+	level2HumpheadText3.setFont(*infoFont);
+	level2HumpheadText3.setString("venture in this close to the coast. This");
+	level2HumpheadText3.setCharacterSize(15 * widthChange);
+	level2HumpheadText3.setFillColor(Color::White);
+	level2HumpheadText3.setPosition(level2HumpheadText1.getPosition().x, level2HumpheadText2.getPosition().y + level2HumpheadText2.getGlobalBounds().height + (5 * heightChange));
+
+	level2HumpheadText4.setFont(*infoFont);
+	level2HumpheadText4.setString("friendly little shoal is etting a it crowded!");
+	level2HumpheadText4.setCharacterSize(15 * widthChange);
+	level2HumpheadText4.setFillColor(Color::White);
+	level2HumpheadText4.setPosition(level2HumpheadText1.getPosition().x, level2HumpheadText3.getPosition().y + level2HumpheadText3.getGlobalBounds().height + (5 * heightChange));
+
+	humpheadSprite.setTexture(humpheadTexture);
+	humpheadSprite.setOrigin(humpheadSprite.getGlobalBounds().width / 2.f, humpheadSprite.getGlobalBounds().height / 2.f);
+	humpheadSprite.setScale(0.5 * widthChange, 0.5 * heightChange);
+	humpheadSprite.setPosition(level2HumpheadText1.getPosition().x - humpheadSprite.getGlobalBounds().width / 2.f - (10 * widthChange), level2HumpheadText3.getPosition().y);
+
+	tip2Text.setFont(*infoFont);
+	tip2Text.setString("Tip: Barracuda and Lionfish are faster than they look - don't get cornered.");
+	tip2Text.setCharacterSize(13 * widthChange);
+	tip2Text.setOrigin(tip2Text.getGlobalBounds().width / 2.f, tip2Text.getGlobalBounds().height / 2.f);
+	tip2Text.setFillColor(Color::White);
+	tip2Text.setPosition(tip1Text.getPosition());
+
+	level3EddieText1.setFont(*infoFont);
+	level3EddieText1.setString("Meet Eddie the angler. Her small fins");
+	level3EddieText1.setCharacterSize(15 * widthChange);
+	level3EddieText1.setFillColor(Color::White);
+	level3EddieText1.setPosition(level1BorisText1.getPosition());
+
+	level3EddieText2.setFont(*infoFont);
+	level3EddieText2.setString("make her a little slower, but she");
+	level3EddieText2.setCharacterSize(15 * widthChange);
+	level3EddieText2.setFillColor(Color::White);
+	level3EddieText2.setPosition(level3EddieText1.getPosition().x, level3EddieText1.getPosition().y + level3EddieText1.getGlobalBounds().height + (5 * widthChange));
+
+	level3EddieText3.setFont(*infoFont);
+	level3EddieText3.setString("has a big bite! The deep sea is dark and");
+	level3EddieText3.setCharacterSize(15 * widthChange);
+	level3EddieText3.setFillColor(Color::White);
+	level3EddieText3.setPosition(level3EddieText1.getPosition().x, level3EddieText2.getPosition().y + level3EddieText2.getGlobalBounds().height + (5 * widthChange));
+
+	level3EddieText4.setFont(*infoFont);
+	level3EddieText4.setString("dangerous, but Eddie will light the way.");
+	level3EddieText4.setCharacterSize(15 * widthChange);
+	level3EddieText4.setFillColor(Color::White);
+	level3EddieText4.setPosition(level3EddieText1.getPosition().x, level3EddieText3.getPosition().y + level3EddieText3.getGlobalBounds().height + (5 * widthChange));
+
+	eddieSprite.setTexture(eddieTexture);
+	eddieSprite.setOrigin(eddieSprite.getGlobalBounds().width / 2.f, eddieSprite.getGlobalBounds().height / 2.f);
+	eddieSprite.setScale(0.9 * widthChange, 0.9 * heightChange);
+	eddieSprite.setPosition(level3EddieText3.getPosition().x + level3EddieText3.getGlobalBounds().width + eddieSprite.getGlobalBounds().width - (40 * widthChange), level3EddieText4.getPosition().y + (20 * heightChange));
+
+	level3JohnDorryText1.setFont(*infoFont);
+	level3JohnDorryText1.setString("Meet the John Dory. With his striking");
+	level3JohnDorryText1.setCharacterSize(15 * widthChange);
+	level3JohnDorryText1.setFillColor(Color::White);
+	level3JohnDorryText1.setPosition(level3EddieText1.getPosition().x, level3EddieText4.getPosition().y + level3EddieText4.getGlobalBounds().height + (70 * heightChange));
+
+	level3JohnDorryText2.setFont(*infoFont);
+	level3JohnDorryText2.setString("yellow stripes and unique shape, he is");
+	level3JohnDorryText2.setCharacterSize(15 * widthChange);
+	level3JohnDorryText2.setFillColor(Color::White);
+	level3JohnDorryText2.setPosition(level3EddieText1.getPosition().x, level3JohnDorryText1.getPosition().y + level3JohnDorryText1.getGlobalBounds().height + (5 * heightChange));
+
+	level3JohnDorryText3.setFont(*infoFont);
+	level3JohnDorryText3.setString("ready to chomp his way through the");
+	level3JohnDorryText3.setCharacterSize(15 * widthChange);
+	level3JohnDorryText3.setFillColor(Color::White);
+	level3JohnDorryText3.setPosition(level3JohnDorryText1.getPosition().x, level3JohnDorryText2.getPosition().y + level3JohnDorryText2.getGlobalBounds().height + (5 * heightChange));
+
+	level3JohnDorryText4.setFont(*infoFont);
+	level3JohnDorryText4.setString("bustling waters of the reef. Keep your");
+	level3JohnDorryText4.setCharacterSize(15 * widthChange);
+	level3JohnDorryText4.setFillColor(Color::White);
+	level3JohnDorryText4.setPosition(level3JohnDorryText1.getPosition().x, level3JohnDorryText3.getPosition().y + level3JohnDorryText3.getGlobalBounds().height + (5 * heightChange));
+
+	level3JohnDorryText5.setFont(*infoFont);
+	level3JohnDorryText5.setString("stomach full and your fins moving, because");
+	level3JohnDorryText5.setCharacterSize(15 * widthChange);
+	level3JohnDorryText5.setFillColor(Color::White);
+	level3JohnDorryText5.setPosition(level3JohnDorryText1.getPosition().x, level3JohnDorryText4.getPosition().y + level3JohnDorryText4.getGlobalBounds().height + (5 * heightChange));
+
+	level3JohnDorryText6.setFont(*infoFont);
+	level3JohnDorryText6.setString("there's always a bigger fish waiting to");
+	level3JohnDorryText6.setCharacterSize(15 * widthChange);
+	level3JohnDorryText6.setFillColor(Color::White);
+	level3JohnDorryText6.setPosition(level3JohnDorryText1.getPosition().x, level3JohnDorryText5.getPosition().y + level3JohnDorryText5.getGlobalBounds().height + (5 * heightChange));
+
+	level3JohnDorryText7.setFont(*infoFont);
+	level3JohnDorryText7.setString("turn you into their next snack!");
+	level3JohnDorryText7.setCharacterSize(15 * widthChange);
+	level3JohnDorryText7.setFillColor(Color::White);
+	level3JohnDorryText7.setPosition(level3JohnDorryText1.getPosition().x, level3JohnDorryText6.getPosition().y + level3JohnDorryText6.getGlobalBounds().height + (5 * heightChange));
+
+	johnDorrySprite.setTexture(johnDorryTexture);
+	johnDorrySprite.setOrigin(johnDorrySprite.getGlobalBounds().width / 2.f, johnDorrySprite.getGlobalBounds().height / 2.f);
+	johnDorrySprite.setScale(0.9 * widthChange, 0.9 * heightChange);
+	johnDorrySprite.setPosition(level3JohnDorryText5.getPosition().x + level3JohnDorryText5.getGlobalBounds().width + johnDorrySprite.getGlobalBounds().width - (30 * widthChange), level3JohnDorryText4.getPosition().y);
+
+	tip3Text.setFont(*infoFont);
+	tip3Text.setString("Tip: Deep-sea angler fish are also called 'black devils' because of their frightening appearance.");
+	tip3Text.setCharacterSize(13 * widthChange);
+	tip3Text.setOrigin(tip3Text.getGlobalBounds().width / 2.f, tip3Text.getGlobalBounds().height / 2.f);
+	tip3Text.setFillColor(Color::White);
+	tip3Text.setPosition(tip1Text.getPosition());
+
+	level4OrvilleText1.setFont(*infoFont);
+	level4OrvilleText1.setString("Meet Orville the Orca. With his massive");
+	level4OrvilleText1.setCharacterSize(15 * widthChange);
+	level4OrvilleText1.setFillColor(Color::White);
+	level4OrvilleText1.setPosition(level1BorisText1.getPosition());
+
+	level4OrvilleText2.setFont(*infoFont);
+	level4OrvilleText2.setString("size and sleek black-and-white colors, he");
+	level4OrvilleText2.setCharacterSize(15 * widthChange);
+	level4OrvilleText2.setFillColor(Color::White);
+	level4OrvilleText2.setPosition(level4OrvilleText1.getPosition().x, level4OrvilleText1.getPosition().y + level4OrvilleText1.getGlobalBounds().height + (5 * heightChange));
+
+	level4OrvilleText3.setFont(*infoFont);
+	level4OrvilleText3.setString("is the undisputed king of the open ocean!");
+	level4OrvilleText3.setCharacterSize(15 * widthChange);
+	level4OrvilleText3.setFillColor(Color::White);
+	level4OrvilleText3.setPosition(level4OrvilleText2.getPosition().x, level4OrvilleText2.getPosition().y + level4OrvilleText2.getGlobalBounds().height + (5 * heightChange));
+
+	level4OrvilleText4.setFont(*infoFont);
+	level4OrvilleText4.setString("Take control of this apex predator and chomp");
+	level4OrvilleText4.setCharacterSize(15 * widthChange);
+	level4OrvilleText4.setFillColor(Color::White);
+	level4OrvilleText4.setPosition(level4OrvilleText3.getPosition().x, level4OrvilleText3.getPosition().y + level4OrvilleText3.getGlobalBounds().height + (5 * heightChange));
+
+	level4OrvilleText5.setFont(*infoFont);
+	level4OrvilleText5.setString("way to the top of the food chain, because now");
+	level4OrvilleText5.setCharacterSize(15 * widthChange);
+	level4OrvilleText5.setFillColor(Color::White);
+	level4OrvilleText5.setPosition(level4OrvilleText4.getPosition().x, level4OrvilleText4.getPosition().y + level4OrvilleText4.getGlobalBounds().height + (5 * heightChange));
+
+	level4OrvilleText6.setFont(*infoFont);
+	level4OrvilleText6.setString("the whole ocean is your all-you-can-eat buffet!");
+	level4OrvilleText6.setCharacterSize(15 * widthChange);
+	level4OrvilleText6.setFillColor(Color::White);
+	level4OrvilleText6.setPosition(level4OrvilleText5.getPosition().x, level4OrvilleText5.getPosition().y + level4OrvilleText5.getGlobalBounds().height + (5 * heightChange));
+
+	orvilleSprite.setTexture(orvilleTexture);
+	orvilleSprite.setOrigin(orvilleSprite.getGlobalBounds().width / 2.f, orvilleSprite.getGlobalBounds().height / 2.f);
+	orvilleSprite.setScale(widthChange, heightChange);
+	orvilleSprite.setPosition(window.getSize().x / 2.f, level4OrvilleText6.getPosition().y + level4OrvilleText6.getGlobalBounds().height + orvilleSprite.getGlobalBounds().height / 2.f);
+
+	level4MineTitle.setFont(*infoFont);
+	level4MineTitle.setString("DANGER: MINES!");
+	level4MineTitle.setCharacterSize(18 * widthChange);
+	level4MineTitle.setFillColor(Color(184, 179, 87));
+	level4MineTitle.setPosition(orvilleSprite.getPosition().x - level4MineTitle.getGlobalBounds().width - (40 * widthChange), orvilleSprite.getPosition().y + orvilleSprite.getGlobalBounds().height / 2.f - (20 * heightChange));
+
+	level4MineText1.setFont(*infoFont);
+	level4MineText1.setString("Avoid mines that fall from the top of the");
+	level4MineText1.setCharacterSize(15 * widthChange);
+	level4MineText1.setFillColor(Color::White);
+	level4MineText1.setPosition(level4MineTitle.getPosition().x + (10 * widthChange), level4MineTitle.getPosition().y + level4MineTitle.getGlobalBounds().height + (10 * heightChange));
+
+	level4MineText2.setFont(*infoFont);
+	level4MineText2.setString("screen. If you bump one of these touchy");
+	level4MineText2.setCharacterSize(15 * widthChange);
+	level4MineText2.setFillColor(Color::White);
+	level4MineText2.setPosition(level4MineText1.getPosition().x, level4MineText1.getPosition().y + level4MineText1.getGlobalBounds().height + (5 * heightChange));
+
+	level4MineText3.setFont(*infoFont);
+	level4MineText3.setString("contraptions...KABOOM!");
+	level4MineText3.setCharacterSize(15 * widthChange);
+	level4MineText3.setFillColor(Color::White);
+	level4MineText3.setPosition(level4MineText2.getPosition().x, level4MineText2.getPosition().y + level4MineText2.getGlobalBounds().height + (5 * heightChange));
+
+	mineSprite.setTexture(mineTexture);
+	mineSprite.setOrigin(mineSprite.getGlobalBounds().width / 2.f, mineSprite.getGlobalBounds().height / 2.f);
+	mineSprite.setScale(1.2 * widthChange, 1.2 * heightChange);
+	mineSprite.setPosition(level4MineText2.getPosition().x - mineSprite.getGlobalBounds().width / 2.f - (10 * widthChange), level4MineText2.getPosition().y + (10 * heightChange));
+
+	tip4Text.setFont(*infoFont);
+	tip4Text.setString("Tip: Mines don't care how big you are - one touch and you're done.");
+	tip4Text.setCharacterSize(13 * widthChange);
+	tip4Text.setOrigin(tip4Text.getGlobalBounds().width / 2.f, tip4Text.getGlobalBounds().height / 2.f);
+	tip4Text.setFillColor(Color::White);
+	tip4Text.setPosition(tip1Text.getPosition());
+
+}
+
+void menuTextBeforeLevels::textMenuLevel1(RenderWindow& window) {
+
+	if (inTextMenuLevel1) {
+
+		window.draw(textMenuBackgroundSprite);
+		window.draw(textMenuBorderSprite);
+
+		if (isOnContinue) {
+
+			window.draw(longButtonOnSprite);
+			window.draw(continueTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(longButtonOffSprite);
+			window.draw(continueTextOffSprite);
+
+		}
+
+		if (isOnQuit) {
+
+			window.draw(shortButtonOnSprite);
+			window.draw(quitTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(shortButtonOffSprite);
+			window.draw(quitTextOffSprite);
+
+		}
+
+		window.draw(level1Text);
+		window.draw(level1BorisText1);
+		window.draw(level1BorisText2);
+		window.draw(level1BorisText3);
+		window.draw(level1BorisText4);
+		window.draw(level1BorisText5);
+		window.draw(level1BorisText6);
+		window.draw(howToPlayTitle);
+		window.draw(howToPlayText1);
+		window.draw(howToPlayText2);
+		window.draw(howToPlayText3);
+		window.draw(howToPlayText4);
+		window.draw(borisSprite);
+		window.draw(orangeFishSprite);
+		window.draw(blueFishSprite);
+		window.draw(brownFishSprite);
+		window.draw(tip1Text);
+
+	}
+
+}
+
+void menuTextBeforeLevels::textMenuLevel2(RenderWindow& window) {
+
+	if (inTextMenuLevel2) {
+
+		window.draw(textMenuBackgroundSprite);
+		window.draw(textMenuBorderSprite);
+
+		if (isOnContinue) {
+
+			window.draw(longButtonOnSprite);
+			window.draw(continueTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(longButtonOffSprite);
+			window.draw(continueTextOffSprite);
+
+		}
+
+		if (isOnQuit) {
+
+			window.draw(shortButtonOnSprite);
+			window.draw(quitTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(shortButtonOffSprite);
+			window.draw(quitTextOffSprite);
+
+		}
+
+		window.draw(level2Text);
+		window.draw(level2BarracudaTitle);
+		window.draw(level2BarracudaText1);
+		window.draw(level2BarracudaText2);
+		window.draw(level2BarracudaText3);
+		window.draw(level2BarracudaText4);
+		window.draw(level2BarracudaText5);
+		window.draw(barracudaSprite);
+		window.draw(level2HumpheadText1);
+		window.draw(level2HumpheadText2);
+		window.draw(level2HumpheadText3);
+		window.draw(level2HumpheadText4);
+		window.draw(humpheadSprite);
+		window.draw(tip2Text);
+
+	}
+
+}
+
+void menuTextBeforeLevels::textMenuLevel3(RenderWindow& window) {
+
+	if (inTextMenuLevel3) {
+
+		window.draw(textMenuBackgroundSprite);
+		window.draw(textMenuBorderSprite);
+
+		if (isOnContinue) {
+
+			window.draw(longButtonOnSprite);
+			window.draw(continueTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(longButtonOffSprite);
+			window.draw(continueTextOffSprite);
+
+		}
+
+		if (isOnQuit) {
+
+			window.draw(shortButtonOnSprite);
+			window.draw(quitTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(shortButtonOffSprite);
+			window.draw(quitTextOffSprite);
+
+		}
+
+		window.draw(level3Text);
+		window.draw(level3EddieText1);
+		window.draw(level3EddieText2);
+		window.draw(level3EddieText3);
+		window.draw(level3EddieText4);
+		window.draw(eddieSprite);
+		window.draw(level3JohnDorryText1);
+		window.draw(level3JohnDorryText2);
+		window.draw(level3JohnDorryText3);
+		window.draw(level3JohnDorryText4);
+		window.draw(level3JohnDorryText5);
+		window.draw(level3JohnDorryText6);
+		window.draw(level3JohnDorryText7);
+		window.draw(johnDorrySprite);
+		window.draw(tip3Text);
+
+	}
+}
+
+void menuTextBeforeLevels::textMenuLevel4(RenderWindow& window) {
+
+	if (inTextMenuLevel4) {
+
+		window.draw(textMenuBackgroundSprite);
+		window.draw(textMenuBorderSprite);
+
+		if (isOnContinue) {
+
+			window.draw(longButtonOnSprite);
+			window.draw(continueTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(longButtonOffSprite);
+			window.draw(continueTextOffSprite);
+
+		}
+
+		if (isOnQuit) {
+
+			window.draw(shortButtonOnSprite);
+			window.draw(quitTextOnSprite);
+
+		}
+
+		else {
+
+			window.draw(shortButtonOffSprite);
+			window.draw(quitTextOffSprite);
+
+		}
+
+		window.draw(level4Text);
+		window.draw(level4OrvilleText1);
+		window.draw(level4OrvilleText2);
+		window.draw(level4OrvilleText3);
+		window.draw(level4OrvilleText4);
+		window.draw(level4OrvilleText5);
+		window.draw(level4OrvilleText6);
+		window.draw(orvilleSprite);
+		window.draw(level4MineTitle);
+		window.draw(level4MineText1);
+		window.draw(level4MineText2);
+		window.draw(level4MineText3);
+		window.draw(mineSprite);
+		window.draw(tip4Text);
+
+	}
+
+}
+
+void menuTextBeforeLevels::textMenucontrols(RenderWindow& window, short &scene, Event& event) {
+
+	Vector2i pixelPosition = Mouse::getPosition(window);
+
+	Vector2f worldPosition = window.mapPixelToCoords(pixelPosition);
+
+	if (longButtonOffSprite.getGlobalBounds().contains(worldPosition) || longButtonOnSprite.getGlobalBounds().contains(worldPosition)) {
+
+		isOnContinue = true;
+		isOnQuit = false;
+
+	}
+
+	else if (shortButtonOffSprite.getGlobalBounds().contains(worldPosition) || shortButtonOnSprite.getGlobalBounds().contains(worldPosition)) {
+
+		isOnContinue = false;
+		isOnQuit = true;
+
+	}
+
+	else {
+
+		isOnContinue = false;
+		isOnQuit = false;
+
+	}
+
+    if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left)
+        leftMouseClicked = true;
+
+	if (isOnContinue && leftMouseClicked) {
+
+
+
+		if (inTextMenuLevel1) {
+
+			inTextMenuLevel1 = false;
+            scene = 4;
+			// inTextMenuLevel2 = true;
+			// inTextMenuLevel3 = false;
+			// inTextMenuLevel4 = false;
+
+		}
+
+		else if (inTextMenuLevel2) {
+
+			inTextMenuLevel1 = false;
+			inTextMenuLevel2 = false;
+			inTextMenuLevel3 = true;
+			inTextMenuLevel4 = false;
+
+		}
+
+		else if (inTextMenuLevel3) {
+
+			inTextMenuLevel1 = false;
+			inTextMenuLevel2 = false;
+			inTextMenuLevel3 = false;
+			inTextMenuLevel4 = true;
+
+		}
+
+		else if (inTextMenuLevel4) {
+
+			inTextMenuLevel1 = false;
+			inTextMenuLevel2 = false;
+			inTextMenuLevel3 = false;
+			inTextMenuLevel4 = false;
+
+		}
+
+	}
+
+	if (isOnQuit && leftMouseClicked) {
+
+		scene = 2;
+
+	}
+
+	leftMouseClicked = false;
+
 }
