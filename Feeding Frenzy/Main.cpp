@@ -20,7 +20,7 @@ struct Score {
     livelnum = 1,
     currentFrenzy = 0, i = 0; //for counting frenzy word
     float speedP = 800, speedE = 100;
-    short unlocked_levels = 1, completed_levels = unlocked_levels - 1;
+    short unlocked_levels = 2, completed_levels = unlocked_levels - 1;
 
     int FRENZYi[7]{ 0,0,0,0,0,0,0 };
     float dt, timer = 0;
@@ -687,7 +687,7 @@ int main()
     Image icon;
     icon.loadFromFile("Sprites\\icon.png");
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-    short scene = 2; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
+    short scene = 0; // 0 for start_mermaid menu, 2 -> mermaid animation, 3-> shark
     Clock clock;
     Mermaid mermaid; Shark shark;
     gameSounds sounds;
