@@ -148,7 +148,7 @@ struct Shark {
 };
 
 struct commonAssets {
-    Font game_font;
+    Font game_font, highlights_font;
     Texture main_menu_background_text, menu_rocks_text;
     Sprite main_menu_background_sprite, menu_rocks_sprite;
 
@@ -338,12 +338,15 @@ struct helpAndOptions {
 
     RenderWindow* window = nullptr;
     menuButtons buttons[7];
-    Texture buttons_texture[6][2], menu_shell_texture[6], Rarrow_texture[1][2], Larrow_texture[1][2], mouse_texture, reft;
-    Sprite buttons_sprite[6][2], menu_shell_sprite[6], Rarrow_sprite[1][2], Larrow_sprite[1][2], mouse_sprite, refs;
+    Texture buttons_texture[6][2], menu_shell_texture[6], spongebob_text, mouse_texture, reft;
+    Sprite buttons_sprite[6][2], menu_shell_sprite[6], spongebob_sprite, mouse_sprite, refs;
     string settings_string[4] = { "Sound:", "Music:", "Full Screen:", "Mouse Speed:" },
         how_to_play_string[2]{ "Welcome to the beautiful Frenzy Coast.\nEnjoy the sights, but don't get too comfortable...\nA fish still needs his lunch, and it's a fish-eat-fish\nworld out there!",
             "- Use your mouse to control Boris.\n- Eat fish that are smaller than you.\n- Avoid anything that's larger than you.\n- Eat enough fish and you'll grow bigger!\n" };
-    Text settings_text[4], how_to_play_text[2], sound_volume, music_volume;
+    
+    string namesString[9] = {"Made By", "Amal Mohamed", "Fatma Saaed", "Ghadeer Hamed", "Karim Khattab","Karim Hossam",  "Menna Saad", "Youssef Ayman", "Credits" };
+
+    Text settings_text[4], how_to_play_text[2],namesText[9];
     commonAssets* assets = nullptr;
     gameSounds* sound = nullptr;
 
@@ -1655,6 +1658,7 @@ void UpperBar::update(float dt, Score& score) {
 void commonAssets::load()
 {
     if (!game_font.loadFromFile("Fonts\\hint.ttf")) cout << "Menu font is not found" << endl;
+    if (!highlights_font.loadFromFile("Fonts\\Buttons1.ttf")) cout << "Menu font is not found" << endl;
 
     if (!main_menu_background_text.loadFromFile("Sprites\\2\\Menu assets\\mainMenu.jpg")) cout << "main menu background is not found" << endl;
     main_menu_background_sprite.setTexture(main_menu_background_text);
@@ -2359,17 +2363,15 @@ void helpAndOptions::load_assets()
         buttons[i].load_buttons();
 
     if (!mouse_texture.loadFromFile("Sprites\\menu\\mouse.png")) cout << "mouse texture is not found" << endl;
-
-    if (!Rarrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small.png")) cout << "right arrow texture is not found" << endl;
-    if (!Rarrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_glow.png")) cout << "glowing right arrow texture is not found" << endl;
-    if (!Larrow_texture[0][0].loadFromFile("Sprites\\menu\\yellow_arrow_small_left.png")) cout << "left arrow texture is not found" << endl;
-    if (!Larrow_texture[0][1].loadFromFile("Sprites\\menu\\yellow_arrow_small_left_glow.png")) cout << "glowing left arrow texture is not found" << endl;
+    
+    if (!spongebob_text.loadFromFile("Sprites\\menu\\sponge-bob.png")) cout << "sponge-bob texture is not found" << endl;
 
     if (!menu_shell_texture[0].loadFromFile("Sprites\\menu\\shell_stageBack.png")) cout << "main shell's not found" << endl;
     if (!menu_shell_texture[1].loadFromFile("Sprites\\menu\\help-and-options-shell1.png")) cout << "help-and-optionsshell's not found" << endl;
     if (!menu_shell_texture[2].loadFromFile("Sprites\\menu\\settings-shell.png")) cout << "settings shell is not found" << endl;
     if (!menu_shell_texture[3].loadFromFile("Sprites\\menu\\controls-shell.png")) cout << "controls shell is not found" << endl;
     if (!menu_shell_texture[4].loadFromFile("Sprites\\menu\\how-to-play-shell.png")) cout << "controls shell is not found" << endl;
+    if (!menu_shell_texture[5].loadFromFile("Sprites\\menu\\shell_stage.png")) cout << "controls shell is not found" << endl;
 
     if (!buttons_texture[0][0].loadFromFile("Sprites\\menu\\controls.png")) cout << "not found" << endl;
     if (!buttons_texture[0][1].loadFromFile("Sprites\\menu\\controls-glow.png")) cout << "not found" << endl;
@@ -2420,7 +2422,7 @@ void helpAndOptions::load_assets()
         }
     }
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 6; i++)
     {
         menu_shell_sprite[i].setTexture(menu_shell_texture[i]);
         menu_shell_sprite[i].setOrigin(menu_shell_sprite[i].getGlobalBounds().width / 2, menu_shell_sprite[i].getGlobalBounds().height / 2);
@@ -2432,6 +2434,12 @@ void helpAndOptions::load_assets()
     mouse_sprite.setOrigin(mouse_sprite.getGlobalBounds().width / 2, mouse_sprite.getGlobalBounds().height / 2);
     mouse_sprite.setPosition(settings.res.x * 0.43f, settings.res.y * 0.5f);
     mouse_sprite.setScale(0.9f, 0.9f);
+    
+    spongebob_sprite.setTexture(spongebob_text);
+    spongebob_sprite.setOrigin(spongebob_sprite.getGlobalBounds().width / 2, spongebob_sprite.getGlobalBounds().height / 2);
+    spongebob_sprite.setPosition(settings.res.x / 2 - 250 , settings.res.y / 2 + 100);
+    spongebob_sprite.setScale(0.6f, 0.6f);
+
 
     for (int i = 0; i < 4; i++)
     {
@@ -2471,17 +2479,27 @@ void helpAndOptions::load_assets()
                     buttons[i].checkbox_sprite[j][h].setPosition(0.495f * settings.res.x + (i - 3) * 60, 0.295f * settings.res.y + 3 * 100);
             }
 
-
-
-    sound_volume.setPosition(0.495f * settings.res.x, 0.272f * settings.res.y);
-    sound_volume.setFont(assets->game_font);
-    sound_volume.setFillColor(Color::White);
-    sound_volume.setOutlineColor(Color::Black);
-    sound_volume.setCharacterSize(48);
-    sound_volume.setOutlineThickness(2);
-
+    for (int i = 0; i < 9; i++) 
+    {
+        namesText[i].setFont(assets->game_font);
+        namesText[i].setString(namesString[i]);
+        namesText[i].setCharacterSize(40);
+        namesText[i].setFillColor(Color::White);
+        namesText[i].setOutlineThickness(2);
+        namesText[i].setOutlineColor(Color::Black);
+        FloatRect bounds = namesText[i].getLocalBounds();
+        namesText[i].setOrigin(bounds.left + bounds.width / 2.f, bounds.top + bounds.height / 2.f);
+        namesText[i].setPosition(settings.res.x/2, settings.res.y/2 - 280 + (i * 70));
+    }
+    for(int i = 0; i<10; i=i+8)
+    {
+        namesText[i].setFont(assets->highlights_font);
+        namesText[i].setFillColor(Color(222, 199, 75));
+    }
+    namesText[0].setCharacterSize(50);
+    namesText[8].setCharacterSize(90);
+    namesText[8].setPosition(settings.res.x/2 - 90, settings.res.y/2 - 440);
 }
-
 void helpAndOptions::handle_movements(Event& event)
 {
 
@@ -2595,11 +2613,6 @@ void helpAndOptions::handle_movements(Event& event)
                     settings.controls[1] = !settings.controls[1];
                 else if (selected == 3)
                     settings.controls[2] = !settings.controls[2], window_mode(*window, settings.controls[2]);
-                // else if(selected == 4)
-
-                // else if(selected == 5)
-
-                // else
             }
             else if (options_scene == 1 || options_scene == 3 || options_scene == 4)
             {
@@ -2641,10 +2654,6 @@ void helpAndOptions::draw()
 
 void helpAndOptions::update_settings()
 {
-    sound_volume.setString(to_string(settings.sound_volume));
-    music_volume.setString(to_string(settings.music_volume));
-    FloatRect bounds = sound_volume.getLocalBounds();
-    sound_volume.setOrigin(bounds.left + bounds.width, bounds.top);
     sound->play_sound();
 }
 
@@ -2698,10 +2707,13 @@ void helpAndOptions::draw_how_to_play()
 void helpAndOptions::draw_credits()
 {
     draw_basics();
-    //window->draw(refs);
-    for (int i = 0; i < 3; i = i + 2)
-        window->draw(menu_shell_sprite[i]);
+    window->draw(menu_shell_sprite[0]);
+    window->draw(spongebob_sprite);
+    for(int i =0; i < 8; i++)
+        window->draw(namesText[i]);
+    window->draw(menu_shell_sprite[5]);
     window->draw(buttons_sprite[4][selected == 0 ? 1 : 0]);
+    window->draw(namesText[8]);
     window->display();
 }
 
