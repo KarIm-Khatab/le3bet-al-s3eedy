@@ -1,0 +1,173 @@
+
+struct Oyster
+{
+    Texture oysterTex, blackPearlTex, whitePearlTex;
+    Sprite  oysterSpr, pearlSpr;
+
+    int COLS   = 5;      
+    int frameW = 0;
+    int frameH = 0;
+    int curFrame = 0;
+
+    float posX = 700.f;
+    float posY = 950.f;
+
+    float animTimer    = 0.f;
+    float openTimer    = 0.f;
+    float shakeTimer   = 0.f;
+    float respawnTimer = 0.f;
+
+    float FRAME_TIME     = 0.18f;
+    float OPEN_DURATION  = 5.f;
+    float SHAKE_DURATION = 1.f;
+    float SPAWN_DELAY    = 12.f;
+    float OYSTER_SCALE   = 2.5f;
+    float PEARL_SCALE    = 0.5f;
+
+    enum OysterState { HIDDEN, OPENING, OPEN, SHAKING, CLOSING };
+    OysterState oState = HIDDEN;
+
+    bool pearlVisible = false;
+    bool isBlackPearl = false;
+    bool collected    = false;
+
+    
+    void startOpen()
+    {
+        isBlackPearl = (rand() % 2 == 0);
+        collected    = false;
+        pearlVisible = false;
+        curFrame     = 0;
+        animTimer    = 0.f;
+        respawnTimer = 0.f;
+
+        posX = (float)(rand() % 1200 + 300);
+        posY = 950.f;
+
+        oysterSpr.setPosition(posX, posY);
+        oysterSpr.setTextureRect(IntRect(0, 0, frameW, frameH));
+        oState = OPENING;
+    }
+
+    
+    void load()
+    {
+        oysterTex.loadFromFile("Sprites/Pearl/Oyster.png");
+        blackPearlTex.loadFromFile("Sprites/Pearl/BLACK_PEARL.png");
+        whitePearlTex.loadFromFile("Sprites/Pearl/WHITE_PEARL.png");
+
+        frameW = oysterTex.getSize().x / COLS;
+        frameH = (int)oysterTex.getSize().y;
+
+        oysterSpr.setTexture(oysterTex);
+        oysterSpr.setTextureRect(IntRect(0, 0, frameW, frameH));
+        oysterSpr.setOrigin(frameW / 2.f, (float)frameH);
+        oysterSpr.setScale(OYSTER_SCALE, OYSTER_SCALE);
+        oysterSpr.setPosition(posX, posY);
+    }
+
+    
+    void update(float dt, setplayer& player, gameSounds& sounds)
+    {
+        switch (oState)
+        {
+        case HIDDEN:
+            respawnTimer += dt;
+            if (respawnTimer >= SPAWN_DELAY)
+                startOpen();
+            break;
+
+        case OPENING:
+            animTimer += dt;
+            if (animTimer >= FRAME_TIME)
+            {
+                animTimer = 0.f;
+                curFrame++;
+
+                if (curFrame >= COLS)
+                {
+                    curFrame = COLS - 1;
+
+                    pearlSpr.setTexture(
+                        isBlackPearl ? blackPearlTex : whitePearlTex, true);
+                    pearlSpr.setOrigin(
+                        pearlSpr.getLocalBounds().width  / 2.f,
+                        pearlSpr.getLocalBounds().height / 2.f);
+                    pearlSpr.setScale(PEARL_SCALE, PEARL_SCALE);
+
+                    float scaledH = frameH * OYSTER_SCALE;
+                    pearlSpr.setPosition(posX, posY - scaledH * 0.35f);
+
+                    pearlVisible = true;
+                    openTimer    = 0.f;
+                    oState       = OPEN;
+
+                    sounds.play_sfx(gameSounds::oyster_bite);
+                }
+                else
+                    oysterSpr.setTextureRect(
+                        IntRect(curFrame * frameW, 0, frameW, frameH));
+            }
+            break;
+
+        case OPEN:
+            openTimer += dt;
+
+            if (pearlVisible && !collected &&
+                pearlSpr.getGlobalBounds().intersects(
+                    player.anim.sprite.getGlobalBounds()))
+            {
+                collected    = true;
+                pearlVisible = false;
+                score.score += score.prealscore * score.bouns;
+                sounds.play_sfx(gameSounds::oyster_pearl);
+            }
+
+            if (openTimer >= OPEN_DURATION)
+            {
+                pearlVisible = false;
+                shakeTimer   = 0.f;
+                oState       = SHAKING;
+            }
+            break;
+
+        case SHAKING:
+            shakeTimer += dt;
+            oysterSpr.setPosition(posX + sinf(shakeTimer * 40.f) * 5.f, posY);
+
+            if (shakeTimer >= SHAKE_DURATION)
+            {
+                oysterSpr.setPosition(posX, posY);
+                curFrame    = COLS - 1;
+                animTimer   = 0.f;
+                oState      = CLOSING;
+            }
+            break;
+
+        case CLOSING:
+            animTimer += dt;
+            if (animTimer >= FRAME_TIME)
+            {
+                animTimer = 0.f;
+                curFrame--;
+                if (curFrame < 0)
+                {
+                    curFrame     = 0;
+                    respawnTimer = 0.f;
+                    oState       = HIDDEN;
+                }
+                oysterSpr.setTextureRect(
+                    IntRect(curFrame * frameW, 0, frameW, frameH));
+            }
+            break;
+        }
+    }
+
+    
+    void draw(RenderWindow& window)
+    {
+        if (oState == HIDDEN) return;
+        window.draw(oysterSpr);
+        if (pearlVisible) window.draw(pearlSpr);
+    }
+};
